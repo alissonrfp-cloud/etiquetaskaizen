@@ -46,13 +46,15 @@ export function getLabelColors(
         saida: defaultSaida,
       };
     }
-    case "full_shopee":
+    case "full_shopee": {
+      const acabShopee = getAcabamentoColor(parteSuperior);
       return {
         row: ROXO_SHOPEE,
         modelo: isDupla ? VERMELHO_DUPLA : ROXO_SHOPEE,
-        parteSup: ROXO_SHOPEE,
+        parteSup: acabShopee.backgroundColor !== "#FFFFFF" ? acabShopee : ROXO_SHOPEE,
         saida: defaultSaida,
       };
+    }
     case "full_ml":
       return {
         row: AZUL_CLARO_ML,
