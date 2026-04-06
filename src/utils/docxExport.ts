@@ -13,7 +13,7 @@ import {
 } from "docx";
 import { saveAs } from "file-saver";
 import type { ParsedLabel } from "./skuParser";
-import { getRowColor, getModeloColor } from "@/data/colorRules";
+import { getLabelColors, CATEGORIA_LABELS } from "@/data/colorRules";
 
 const CELL_BORDER = { style: BorderStyle.SINGLE, size: 1, color: "000000" };
 const BORDERS = { top: CELL_BORDER, bottom: CELL_BORDER, left: CELL_BORDER, right: CELL_BORDER };
@@ -41,23 +41,29 @@ function makeHeaderCell(text: string, width: number): TableCell {
   return makeCell(text, width, "#FFFFFF", true);
 }
 
-// Column widths (total ~9360 DXA for letter)
 const COL = {
-  remessa: 1100,
-  quant: 700,
-  tamanho: 1300,
-  medidasCorte: 2000,
-  modelo: 1600,
-  parteInf: 800,
-  parteSup: 1200,
-  obs: 660,
+  categ: 900,
+  remessa: 900,
+  saida: 900,
+  quant: 550,
+  tamanho: 1000,
+  medidasCorte: 1600,
+  modelo: 1400,
+  parteInf: 700,
+  parteSup: 1000,
+  obs: 500,
+  cortador: 600,
+  refilador: 600,
+  costureiro: 700,
 };
 const TOTAL_W = Object.values(COL).reduce((a, b) => a + b, 0);
 
 function buildLabelTable(labels: ParsedLabel[]): Table {
   const headerRow = new TableRow({
     children: [
+      makeHeaderCell("Categ.", COL.categ),
       makeHeaderCell("Remessa", COL.remessa),
+      makeHeaderCell("Saída", COL.saida),
       makeHeaderCell("Quant.", COL.quant),
       makeHeaderCell("Tamanho", COL.tamanho),
       makeHeaderCell("Medidas do Corte", COL.medidasCorte),
@@ -65,24 +71,37 @@ function buildLabelTable(labels: ParsedLabel[]): Table {
       makeHeaderCell("P. Inferior", COL.parteInf),
       makeHeaderCell("P. Superior", COL.parteSup),
       makeHeaderCell("OBS", COL.obs),
+      makeHeaderCell("Cortador", COL.cortador),
+      makeHeaderCell("Refilador", COL.refilador),
+      makeHeaderCell("Costureiro", COL.costureiro),
     ],
   });
 
   const dataRows = labels.map((label) => {
-    const rowColor = getRowColor(label.parteSuperior);
-    const modeloColor = getModeloColor(label.isDupla, label.parteSuperior);
-    const bg = rowColor.backgroundColor;
+    const colors = getLabelColors(label.categoria, label.parteSuperior, label.isDupla, label.urgente);
+    const bg = colors.row.backgroundColor;
 
     return new TableRow({
       children: [
+        makeCell(CATEGORIA_LABELS[label.categoria], COL.categ, bg, true),
         makeCell(label.remessa, COL.remessa, bg),
+        makeCell(
+          label.dataSaida + (label.urgente ? " ⚠" : ""),
+          COL.saida,
+          colors.saida.backgroundColor,
+          label.urgente,
+          colors.saida.textColor
+        ),
         makeCell(String(label.quantidade), COL.quant, bg),
         makeCell(label.tamanho, COL.tamanho, bg),
         makeCell(label.medidasCorte, COL.medidasCorte, bg),
-        makeCell(label.modelo, COL.modelo, modeloColor.backgroundColor, false, modeloColor.textColor),
+        makeCell(label.modelo, COL.modelo, colors.modelo.backgroundColor, true, colors.modelo.textColor),
         makeCell(label.parteInferior, COL.parteInf, bg),
-        makeCell(label.parteSuperior, COL.parteSup, bg),
+        makeCell(label.parteSuperior, COL.parteSup, colors.parteSup.backgroundColor, false, colors.parteSup.textColor),
         makeCell(label.obs, COL.obs, bg),
+        makeCell("", COL.cortador, "#FFFFFF"),
+        makeCell("", COL.refilador, "#FFFFFF"),
+        makeCell("", COL.costureiro, "#FFFFFF"),
       ],
     });
   });
