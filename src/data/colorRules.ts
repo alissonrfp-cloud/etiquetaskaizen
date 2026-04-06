@@ -105,6 +105,6 @@ export const CATEGORIA_COLORS: Record<Categoria, string> = {
   full_shopee: "#BF80FF",
   full_ml: "#87CEEB",
   revenda: "#FFFF00",
-  drop: "#00B0F0",
+  drop: "#FFFF00",
   estoque: "#D9D9D9",
 };
