@@ -6,19 +6,23 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SkuInput } from "@/components/SkuInput";
 import { LabelPreview } from "@/components/LabelPreview";
 import { LabelList } from "@/components/LabelList";
-import { createLabel, type ParsedLabel, type Categoria, parseSku } from "@/utils/skuParser";
+import { createLabel, createManualLabel, type ParsedLabel, type Categoria, parseSku } from "@/utils/skuParser";
 import { CATEGORIA_LABELS, CATEGORIA_COLORS } from "@/data/colorRules";
 import { exportToDocx } from "@/utils/docxExport";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, FileDown, Tag, CalendarIcon, AlertTriangle } from "lucide-react";
+import { Plus, FileDown, Tag, CalendarIcon, AlertTriangle, PenLine, Barcode } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const CATEGORIAS: Categoria[] = ["marketplace", "full_shopee", "full_ml", "revenda", "drop", "estoque"];
 
+const PARTES_SUPERIORES = ["Trilho Suiço", "Ilhós Redondo Cromado", "Wave"];
+
 const Index = () => {
+  const [modoManual, setModoManual] = useState(false);
   const [sku, setSku] = useState("");
   const [quantidade, setQuantidade] = useState("");
   const [remessa, setRemessa] = useState(new Date().toLocaleDateString("pt-BR"));
@@ -29,7 +33,15 @@ const Index = () => {
   const [labels, setLabels] = useState<ParsedLabel[]>([]);
   const { toast } = useToast();
 
-  const preview = sku.length >= 8 ? parseSku(sku) : null;
+  // Manual mode fields
+  const [manModelo, setManModelo] = useState("");
+  const [manTamanho, setManTamanho] = useState("");
+  const [manMedidas, setManMedidas] = useState("");
+  const [manParteSup, setManParteSup] = useState("Trilho Suiço");
+  const [manParteInf, setManParteInf] = useState("Bainha");
+  const [manDupla, setManDupla] = useState(false);
+
+  const preview = !modoManual && sku.length >= 8 ? parseSku(sku) : null;
 
   const handleAdd = () => {
     const qty = parseInt(quantidade);
@@ -38,16 +50,45 @@ const Index = () => {
       return;
     }
     const dataSaidaStr = format(dataSaida, "dd/MM/yyyy");
-    const label = createLabel(sku, qty, remessa, dataSaidaStr, categoria, urgente, "Kaizen Enxovais", obs);
-    if (!label) {
-      toast({ title: "SKU inválido", description: "Verifique o código digitado.", variant: "destructive" });
-      return;
+
+    if (modoManual) {
+      if (!manModelo.trim() || !manTamanho.trim()) {
+        toast({ title: "Preencha Modelo e Tamanho", variant: "destructive" });
+        return;
+      }
+      const label = createManualLabel({
+        quantidade: qty,
+        remessa,
+        dataSaida: dataSaidaStr,
+        categoria,
+        urgente,
+        modelo: manModelo,
+        tamanho: manTamanho,
+        medidasCorte: manMedidas,
+        parteSuperior: manParteSup,
+        parteInferior: manParteInf,
+        isDupla: manDupla,
+        obs,
+      });
+      setLabels((prev) => [...prev, label]);
+      setManModelo("");
+      setManTamanho("");
+      setManMedidas("");
+      setQuantidade("");
+      setObs("");
+      toast({ title: "Etiqueta manual adicionada!" });
+    } else {
+      const label = createLabel(sku, qty, remessa, dataSaidaStr, categoria, urgente, "Kaizen Enxovais", obs);
+      if (!label) {
+        toast({ title: "SKU inválido", description: "Verifique o código digitado.", variant: "destructive" });
+        return;
+      }
+      setLabels((prev) => [...prev, label]);
+      setSku("");
+      setQuantidade("");
+      setObs("");
+      toast({ title: "Etiqueta adicionada!" });
     }
-    setLabels((prev) => [...prev, label]);
-    setSku("");
-    setQuantidade("");
-    setObs("");
-    toast({ title: "Etiqueta adicionada!" });
   };
 
   const handleRemove = (id: string) => {
@@ -85,8 +126,20 @@ const Index = () => {
 
         {/* Input Form */}
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Nova Etiqueta</CardTitle>
+            <Button
+              variant={modoManual ? "default" : "outline"}
+              size="sm"
+              onClick={() => setModoManual(!modoManual)}
+              className="text-xs"
+            >
+              {modoManual ? (
+                <><Barcode className="h-3.5 w-3.5 mr-1" /> Modo SKU</>
+              ) : (
+                <><PenLine className="h-3.5 w-3.5 mr-1" /> Modo Manual</>
+              )}
+            </Button>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Category Buttons */}
@@ -106,7 +159,6 @@ const Index = () => {
                     style={{
                       backgroundColor: CATEGORIA_COLORS[cat],
                       borderColor: categoria === cat ? "#000" : "transparent",
-                      color: cat === "full_shopee" || cat === "full_ml" ? "#000" : "#000",
                     }}
                   >
                     {CATEGORIA_LABELS[cat]}
@@ -117,10 +169,54 @@ const Index = () => {
 
             {/* Main fields */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3" onKeyDown={handleKeyDown}>
-              <div className="md:col-span-3">
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">SKU</label>
-                <SkuInput value={sku} onChange={setSku} />
-              </div>
+              {modoManual ? (
+                <>
+                  <div className="md:col-span-3">
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Modelo</label>
+                    <Input value={manModelo} onChange={(e) => setManModelo(e.target.value)} placeholder="Ex: Blackout Premium Branco" />
+                  </div>
+                  <div className="md:col-span-1">
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Tamanho</label>
+                    <Input value={manTamanho} onChange={(e) => setManTamanho(e.target.value)} placeholder="3,00x2,70" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Medidas Corte</label>
+                    <Input value={manMedidas} onChange={(e) => setManMedidas(e.target.value)} placeholder="Livre" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">P. Superior</label>
+                    <Select value={manParteSup} onValueChange={setManParteSup}>
+                      <SelectTrigger className="text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PARTES_SUPERIORES.map((p) => (
+                          <SelectItem key={p} value={p}>{p}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="md:col-span-1">
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Dupla?</label>
+                    <button
+                      onClick={() => setManDupla(!manDupla)}
+                      className={cn(
+                        "w-full h-9 rounded-md text-xs font-bold flex items-center justify-center border transition-all",
+                        manDupla
+                          ? "bg-red-600 text-white border-red-700"
+                          : "bg-muted text-muted-foreground border-border"
+                      )}
+                    >
+                      {manDupla ? "SIM" : "NÃO"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="md:col-span-3">
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">SKU</label>
+                  <SkuInput value={sku} onChange={setSku} />
+                </div>
+              )}
               <div className="md:col-span-1">
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Qtd</label>
                 <Input
@@ -182,8 +278,8 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Live Preview */}
-            {preview && (
+            {/* Live Preview (SKU mode only) */}
+            {!modoManual && preview && (
               <div className="mt-2">
                 <p className="text-xs font-medium text-muted-foreground mb-1">Preview:</p>
                 <LabelPreview
