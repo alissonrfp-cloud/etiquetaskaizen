@@ -121,3 +121,39 @@ export function createLabel(
     ...parsed,
   };
 }
+
+export function createManualLabel(data: {
+  quantidade: number;
+  remessa: string;
+  dataSaida: string;
+  categoria: Categoria;
+  urgente: boolean;
+  modelo: string;
+  tamanho: string;
+  medidasCorte: string;
+  parteSuperior: string;
+  parteInferior: string;
+  isDupla: boolean;
+  obs: string;
+}): ParsedLabel {
+  return {
+    id: crypto.randomUUID(),
+    sku: "MANUAL",
+    quantidade: data.quantidade,
+    remessa: data.remessa,
+    dataSaida: data.dataSaida,
+    categoria: data.categoria,
+    urgente: data.urgente,
+    tamanho: data.tamanho,
+    larguraCm: 0,
+    alturaCm: 0,
+    medidasCorte: data.medidasCorte,
+    modelo: data.modelo,
+    corTecido: "",
+    parteInferior: data.parteInferior,
+    parteSuperior: data.parteSuperior,
+    cliente: "Kaizen Enxovais",
+    obs: data.obs,
+    isDupla: data.isDupla,
+  };
+}
