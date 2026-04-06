@@ -1,19 +1,30 @@
 import { useState } from "react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SkuInput } from "@/components/SkuInput";
 import { LabelPreview } from "@/components/LabelPreview";
 import { LabelList } from "@/components/LabelList";
-import { createLabel, type ParsedLabel, parseSku } from "@/utils/skuParser";
+import { createLabel, type ParsedLabel, type Categoria, parseSku } from "@/utils/skuParser";
+import { CATEGORIA_LABELS, CATEGORIA_COLORS } from "@/data/colorRules";
 import { exportToDocx } from "@/utils/docxExport";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, FileDown, Tag } from "lucide-react";
+import { Plus, FileDown, Tag, CalendarIcon, AlertTriangle } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const CATEGORIAS: Categoria[] = ["marketplace", "full_shopee", "full_ml", "revenda", "drop", "estoque"];
 
 const Index = () => {
   const [sku, setSku] = useState("");
   const [quantidade, setQuantidade] = useState("");
   const [remessa, setRemessa] = useState(new Date().toLocaleDateString("pt-BR"));
+  const [dataSaida, setDataSaida] = useState<Date>(new Date());
+  const [categoria, setCategoria] = useState<Categoria>("marketplace");
+  const [urgente, setUrgente] = useState(false);
   const [obs, setObs] = useState("");
   const [labels, setLabels] = useState<ParsedLabel[]>([]);
   const { toast } = useToast();
@@ -26,7 +37,8 @@ const Index = () => {
       toast({ title: "Quantidade inválida", variant: "destructive" });
       return;
     }
-    const label = createLabel(sku, qty, remessa, "Kaizen Enxovais", obs);
+    const dataSaidaStr = format(dataSaida, "dd/MM/yyyy");
+    const label = createLabel(sku, qty, remessa, dataSaidaStr, categoria, urgente, "Kaizen Enxovais", obs);
     if (!label) {
       toast({ title: "SKU inválido", description: "Verifique o código digitado.", variant: "destructive" });
       return;
@@ -76,14 +88,41 @@ const Index = () => {
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Nova Etiqueta</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            {/* Category Buttons */}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-2 block">Categoria</label>
+              <div className="flex flex-wrap gap-2">
+                {CATEGORIAS.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setCategoria(cat)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-md text-xs font-semibold border-2 transition-all",
+                      categoria === cat
+                        ? "ring-2 ring-offset-2 ring-primary scale-105"
+                        : "opacity-70 hover:opacity-100"
+                    )}
+                    style={{
+                      backgroundColor: CATEGORIA_COLORS[cat],
+                      borderColor: categoria === cat ? "#000" : "transparent",
+                      color: cat === "full_shopee" || cat === "full_ml" ? "#000" : "#000",
+                    }}
+                  >
+                    {CATEGORIA_LABELS[cat]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Main fields */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3" onKeyDown={handleKeyDown}>
-              <div className="md:col-span-4">
+              <div className="md:col-span-3">
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">SKU</label>
                 <SkuInput value={sku} onChange={setSku} />
               </div>
-              <div className="md:col-span-2">
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Quantidade</label>
+              <div className="md:col-span-1">
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Qtd</label>
                 <Input
                   type="number"
                   placeholder="Qtd"
@@ -97,8 +136,43 @@ const Index = () => {
                 <Input value={remessa} onChange={(e) => setRemessa(e.target.value)} />
               </div>
               <div className="md:col-span-2">
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Data Saída</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal text-xs">
+                      <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
+                      {format(dataSaida, "dd/MM/yyyy")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dataSaida}
+                      onSelect={(d) => d && setDataSaida(d)}
+                      locale={ptBR}
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="md:col-span-1">
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Urgente</label>
+                <button
+                  onClick={() => setUrgente(!urgente)}
+                  className={cn(
+                    "w-full h-9 rounded-md text-xs font-bold flex items-center justify-center gap-1 border transition-all",
+                    urgente
+                      ? "bg-red-600 text-white border-red-700"
+                      : "bg-muted text-muted-foreground border-border hover:bg-muted/80"
+                  )}
+                >
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  {urgente ? "SIM" : "NÃO"}
+                </button>
+              </div>
+              <div className="md:col-span-1">
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">OBS</label>
-                <Input value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Opcional" />
+                <Input value={obs} onChange={(e) => setObs(e.target.value)} placeholder="—" />
               </div>
               <div className="md:col-span-2 flex items-end">
                 <Button onClick={handleAdd} className="w-full">
@@ -110,7 +184,7 @@ const Index = () => {
 
             {/* Live Preview */}
             {preview && (
-              <div className="mt-4">
+              <div className="mt-2">
                 <p className="text-xs font-medium text-muted-foreground mb-1">Preview:</p>
                 <LabelPreview
                   label={{
@@ -118,6 +192,9 @@ const Index = () => {
                     sku,
                     quantidade: parseInt(quantidade) || 0,
                     remessa,
+                    dataSaida: format(dataSaida, "dd/MM/yyyy"),
+                    categoria,
+                    urgente,
                     cliente: "Kaizen Enxovais",
                     obs,
                     larguraCm: preview.larguraCm,
@@ -145,33 +222,6 @@ const Index = () => {
           </CardHeader>
           <CardContent>
             <LabelList labels={labels} onRemove={handleRemove} />
-          </CardContent>
-        </Card>
-
-        {/* Color Legend */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm">Legenda de Cores</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-3 text-xs">
-              <div className="flex items-center gap-1.5">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: "#00B0F0" }} />
-                <span>Trilho Suiço</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: "#FF99FF" }} />
-                <span>Ilhós Redondo Cromado</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: "#FFC000" }} />
-                <span>Wave</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: "#FF0000" }} />
-                <span className="text-foreground">Dupla (Modelo)</span>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>

@@ -1,5 +1,5 @@
 import type { ParsedLabel } from "@/utils/skuParser";
-import { getRowColor, getModeloColor } from "@/data/colorRules";
+import { getLabelColors, CATEGORIA_LABELS } from "@/data/colorRules";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 
@@ -25,7 +25,9 @@ export function LabelList({ labels, onRemove }: LabelListProps) {
         <thead>
           <tr className="bg-muted">
             <th className={cellClass}>#</th>
+            <th className={cellClass}>Categ.</th>
             <th className={cellClass}>Remessa</th>
+            <th className={cellClass}>Saída</th>
             <th className={cellClass}>Quant.</th>
             <th className={cellClass}>Tamanho</th>
             <th className={cellClass}>Medidas do Corte</th>
@@ -33,24 +35,35 @@ export function LabelList({ labels, onRemove }: LabelListProps) {
             <th className={cellClass}>P. Inferior</th>
             <th className={cellClass}>P. Superior</th>
             <th className={cellClass}>OBS</th>
+            <th className={cellClass}>Cortador</th>
+            <th className={cellClass}>Refilador</th>
+            <th className={cellClass}>Costureiro</th>
             <th className={cellClass}>Ação</th>
           </tr>
         </thead>
         <tbody>
           {labels.map((label, i) => {
-            const rowColor = getRowColor(label.parteSuperior);
-            const modeloColor = getModeloColor(label.isDupla, label.parteSuperior);
+            const colors = getLabelColors(label.categoria, label.parteSuperior, label.isDupla, label.urgente);
             return (
               <tr key={label.id}>
-                <td className={cellClass} style={{ backgroundColor: rowColor.backgroundColor }}>{i + 1}</td>
-                <td className={cellClass} style={{ backgroundColor: rowColor.backgroundColor }}>{label.remessa}</td>
-                <td className={cellClass} style={{ backgroundColor: rowColor.backgroundColor }}>{label.quantidade}</td>
-                <td className={cellClass} style={{ backgroundColor: rowColor.backgroundColor }}>{label.tamanho}</td>
-                <td className={cellClass} style={{ backgroundColor: rowColor.backgroundColor, whiteSpace: "pre-line" }}>{label.medidasCorte}</td>
-                <td className={cellClass} style={{ backgroundColor: modeloColor.backgroundColor, color: modeloColor.textColor, fontWeight: 600 }}>{label.modelo}</td>
-                <td className={cellClass} style={{ backgroundColor: rowColor.backgroundColor }}>{label.parteInferior}</td>
-                <td className={cellClass} style={{ backgroundColor: rowColor.backgroundColor }}>{label.parteSuperior}</td>
-                <td className={cellClass} style={{ backgroundColor: rowColor.backgroundColor }}>{label.obs || "—"}</td>
+                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{i + 1}</td>
+                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 600 }}>
+                  {CATEGORIA_LABELS[label.categoria]}
+                </td>
+                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.remessa}</td>
+                <td className={cellClass} style={{ backgroundColor: colors.saida.backgroundColor, color: colors.saida.textColor, fontWeight: label.urgente ? 700 : 400 }}>
+                  {label.dataSaida}{label.urgente ? " ⚠" : ""}
+                </td>
+                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.quantidade}</td>
+                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.tamanho}</td>
+                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, whiteSpace: "pre-line" }}>{label.medidasCorte}</td>
+                <td className={cellClass} style={{ backgroundColor: colors.modelo.backgroundColor, color: colors.modelo.textColor, fontWeight: 600 }}>{label.modelo}</td>
+                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.parteInferior}</td>
+                <td className={cellClass} style={{ backgroundColor: colors.parteSup.backgroundColor, color: colors.parteSup.textColor }}>{label.parteSuperior}</td>
+                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.obs || "—"}</td>
+                <td className={cellClass} style={{ minWidth: 60 }}></td>
+                <td className={cellClass} style={{ minWidth: 60 }}></td>
+                <td className={cellClass} style={{ minWidth: 60 }}></td>
                 <td className={cellClass}>
                   <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onRemove(label.id)}>
                     <Trash2 className="h-3 w-3" />
