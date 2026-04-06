@@ -15,6 +15,7 @@ import { CATEGORIA_LABELS, CATEGORIA_COLORS } from "@/data/colorRules";
 import { exportToDocx } from "@/utils/docxExport";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, FileDown, Tag, CalendarIcon, AlertTriangle, PenLine, Barcode } from "lucide-react";
+import { PdfUpload } from "@/components/PdfUpload";
 import { cn } from "@/lib/utils";
 
 const CATEGORIAS: Categoria[] = ["marketplace", "full_shopee", "full_ml", "revenda", "drop", "estoque"];
@@ -309,12 +310,19 @@ const Index = () => {
             <CardTitle className="text-lg">
               Etiquetas ({labels.length})
             </CardTitle>
-            {labels.length > 0 && (
-              <Button onClick={handleExport} variant="outline">
-                <FileDown className="h-4 w-4 mr-1" />
-                Exportar DOCX
-              </Button>
-            )}
+            <div className="flex gap-2">
+              <PdfUpload
+                remessa={remessa}
+                categoria={categoria}
+                onLabelsAdded={(newLabels) => setLabels((prev) => [...prev, ...newLabels])}
+              />
+              {labels.length > 0 && (
+                <Button onClick={handleExport} variant="outline">
+                  <FileDown className="h-4 w-4 mr-1" />
+                  Exportar DOCX
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <LabelList labels={labels} onRemove={handleRemove} />
