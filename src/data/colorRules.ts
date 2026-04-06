@@ -70,11 +70,11 @@ export function getLabelColors(
       };
     }
     case "drop": {
-      const base = getAcabamentoColor(parteSuperior);
+      const acabamentoDrop = getAcabamentoColor(parteSuperior);
       return {
-        row: base,
-        modelo: isDupla ? VERMELHO_DUPLA : base,
-        parteSup: base,
+        row: AMARELO_REVENDA,
+        modelo: AMARELO_REVENDA,
+        parteSup: acabamentoDrop.backgroundColor !== "#FFFFFF" ? acabamentoDrop : AMARELO_REVENDA,
         saida: defaultSaida,
       };
     }
