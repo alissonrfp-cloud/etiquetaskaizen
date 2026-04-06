@@ -1,6 +1,5 @@
 import * as pdfjsLib from "pdfjs-dist";
 
-// Use the worker from CDN
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs`;
 
 interface PickingItem {
@@ -8,30 +7,30 @@ interface PickingItem {
   quantidade: number;
 }
 
+/** Known SKU prefixes sorted longest first */
+const KNOWN_PREFIXES = [
+  "CDGLBI", "CDGLMI", "CDGLBW", "CDGLMW",
+  "CBTI", "CBTS", "CBTW",
+  "CGLI", "CGLS", "CGLW",
+  "COXF",
+].sort((a, b) => b.length - a.length);
+
+const KNOWN_COLORS = ["BRANCO", "BEGE", "CHUMBO", "CINZA", "PALHA", "PRETO", "TABACO"];
+
 /**
- * Reconstruct truncated SKU using the NOME column.
- * e.g. SKU="CBTI260X180CHUM-" NOME="...CHUMBO" → "CBTI260X180CHUMBO"
+ * Extract the color from the NOME field.
  */
-function reconstructSku(sku: string, nome: string): string {
-  if (!sku.endsWith("-")) return sku.trim();
-
-  // Extract the color from NOME - it's the last word
-  const words = nome.trim().split(/\s+/);
-  const color = words[words.length - 1].toUpperCase();
-
-  // Get the SKU prefix up to the truncation, find dimensions end
-  const base = sku.replace(/-$/, "").toUpperCase();
-  const dimMatch = base.match(/^([A-Z]+\d+X\d+)/);
-  if (dimMatch) {
-    return dimMatch[1] + color;
+function extractColorFromNome(nome: string): string | null {
+  const upper = nome.toUpperCase();
+  for (const color of KNOWN_COLORS) {
+    if (upper.includes(color)) return color;
   }
-
-  // Fallback: just replace the dash with the color
-  return base + color;
+  return null;
 }
 
 /**
  * Parse a picking list PDF and extract SKU + quantity pairs.
+ * Uses a regex-based approach since columns often merge in text extraction.
  */
 export async function parsePickingListPdf(file: File): Promise<PickingItem[]> {
   const arrayBuffer = await file.arrayBuffer();
@@ -46,52 +45,61 @@ export async function parsePickingListPdf(file: File): Promise<PickingItem[]> {
     // Group text items by Y position (same row)
     const rows = new Map<number, { x: number; text: string }[]>();
     for (const item of textContent.items) {
-      if (!("str" in item)) continue;
+      if (!("str" in item) || !item.str.trim()) continue;
       const y = Math.round(item.transform[5]);
       if (!rows.has(y)) rows.set(y, []);
       rows.get(y)!.push({ x: item.transform[4], text: item.str });
     }
 
-    // Sort rows by Y descending (top to bottom in PDF), columns by X
+    // Sort rows top to bottom, columns left to right
     const sortedRows = [...rows.entries()]
       .sort(([a], [b]) => b - a)
-      .map(([, cols]) => cols.sort((a, b) => a.x - b.x).map((c) => c.text.trim()));
+      .map(([y, cols]) => ({
+        y,
+        text: cols.sort((a, b) => a.x - b.x).map((c) => c.text).join(" "),
+      }));
 
-    // Find column indices from header row
-    let skuCol = -1;
-    let nomeCol = -1;
-    let qtdCol = -1;
-
+    // For each row, try to extract a SKU pattern using regex
     for (const row of sortedRows) {
-      const joined = row.join(" ").toUpperCase();
-      if (joined.includes("SKU") && joined.includes("QUANTIDADE")) {
-        // Identify column positions
-        for (let i = 0; i < row.length; i++) {
-          const cell = row[i].toUpperCase();
-          if (cell === "SKU") skuCol = i;
-          if (cell === "NOME") nomeCol = i;
-          if (cell === "QUANTIDADE") qtdCol = i;
+      const line = row.text.trim();
+
+      // Must start with a numeric ID
+      if (!/^\d{4,}/.test(line)) continue;
+
+      // Find a known prefix in the line
+      let foundPrefix = "";
+      let prefixIdx = -1;
+      for (const prefix of KNOWN_PREFIXES) {
+        const idx = line.toUpperCase().indexOf(prefix);
+        if (idx >= 0) {
+          foundPrefix = prefix;
+          prefixIdx = idx;
+          break;
         }
-        continue;
       }
+      if (!foundPrefix) continue;
 
-      // Parse data rows - look for rows that start with a numeric ID
-      if (skuCol === -1 || qtdCol === -1) continue;
-      if (row.length < Math.max(skuCol, qtdCol) + 1) continue;
+      // Extract dimensions after the prefix: e.g. 300X270
+      const afterPrefix = line.substring(prefixIdx + foundPrefix.length);
+      const dimMatch = afterPrefix.match(/^(\d+)X(\d+)/i);
+      if (!dimMatch) continue;
 
-      // First column should be numeric ID
-      const firstVal = row[0];
-      if (!/^\d+$/.test(firstVal)) continue;
+      const dimEnd = prefixIdx + foundPrefix.length + dimMatch[0].length;
+      const baseSku = line.substring(prefixIdx, dimEnd).toUpperCase();
 
-      const rawSku = row[skuCol];
-      const nome = nomeCol >= 0 && row.length > nomeCol ? row[nomeCol] : "";
-      const qtdStr = row[qtdCol];
-      const qtd = parseInt(qtdStr);
+      // Try to get color from the rest of the line (NOME field)
+      const restOfLine = line.substring(dimEnd).toUpperCase();
+      const color = extractColorFromNome(restOfLine);
 
-      if (!rawSku || isNaN(qtd) || qtd <= 0) continue;
+      const sku = color ? baseSku + color : baseSku;
 
-      const sku = reconstructSku(rawSku, nome);
-      items.push({ sku, quantidade: qtd });
+      // Extract quantity: last number on the line
+      const qtyMatch = line.match(/(\d+)\s*$/);
+      if (!qtyMatch) continue;
+      const qty = parseInt(qtyMatch[1]);
+      if (qty <= 0 || qty > 9999) continue;
+
+      items.push({ sku, quantidade: qty });
     }
   }
 
