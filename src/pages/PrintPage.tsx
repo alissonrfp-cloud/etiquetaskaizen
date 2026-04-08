@@ -173,6 +173,7 @@ function PrintListView({ labels }: { labels: ParsedLabel[] }) {
           <tr>
             <td className={cellClass} style={{ fontWeight: 700 }}>TOTAL</td>
             <td className={cellClass}></td>
+            <td className={cellClass}></td>
             <td className={cellClass} style={{ fontWeight: 700 }}>{totalQty}</td>
             <td className={cellClass}>0</td>
             <td className={cellClass} colSpan={10}></td>
