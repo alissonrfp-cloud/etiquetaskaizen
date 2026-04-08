@@ -46,7 +46,6 @@ const COL = {
   lote: 700,
   subdivisao: 700,
   quant: 500,
-  quant: 500,
   corte: 400,
   saida: 800,
   tamanho: 900,
