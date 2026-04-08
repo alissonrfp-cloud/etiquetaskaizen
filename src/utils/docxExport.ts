@@ -44,6 +44,7 @@ function makeHeaderCell(text: string, width: number): TableCell {
 const COL = {
   remessa: 800,
   lote: 700,
+  subdivisao: 700,
   quant: 500,
   corte: 400,
   saida: 800,
@@ -64,6 +65,7 @@ function buildLabelTable(labels: ParsedLabel[]): Table {
     children: [
       makeHeaderCell("Remessa", COL.remessa),
       makeHeaderCell("Lote", COL.lote),
+      makeHeaderCell("Subdivisão", COL.subdivisao),
       makeHeaderCell("Quant.", COL.quant),
       makeHeaderCell("Corte", COL.corte),
       makeHeaderCell("Saída", COL.saida),
@@ -87,6 +89,7 @@ function buildLabelTable(labels: ParsedLabel[]): Table {
       children: [
         makeCell(label.remessa, COL.remessa, bg),
         makeCell(label.lote, COL.lote, bg, true),
+        makeCell(label.subdivisao || "—", COL.subdivisao, bg, true),
         makeCell(String(label.quantidade), COL.quant, bg, true),
         makeCell(label.corte || "", COL.corte, bg),
         makeCell(
@@ -115,6 +118,7 @@ function buildLabelTable(labels: ParsedLabel[]): Table {
     children: [
       makeCell("TOTAL", COL.remessa, "#FFFFFF", true),
       makeCell("", COL.lote, "#FFFFFF"),
+      makeCell("", COL.subdivisao, "#FFFFFF"),
       makeCell(String(totalQty), COL.quant, "#FFFFFF", true),
       makeCell("0", COL.corte, "#FFFFFF"),
       makeCell("", COL.saida, "#FFFFFF"),

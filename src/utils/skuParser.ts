@@ -8,6 +8,7 @@ export interface ParsedLabel {
   quantidade: number;
   remessa: string;
   lote: string;
+  subdivisao: string;
   corte: string;
   dataSaida: string;
   categoria: Categoria;
@@ -87,7 +88,7 @@ function calcMedidasCorte(larguraCm: number, alturaCm: number, isDupla: boolean,
   return `2 partes de ${lStr}m x ${aStr}m`;
 }
 
-export function parseSku(sku: string): Omit<ParsedLabel, "id" | "quantidade" | "remessa" | "lote" | "corte" | "dataSaida" | "categoria" | "urgente" | "cliente" | "obs"> | null {
+export function parseSku(sku: string): Omit<ParsedLabel, "id" | "quantidade" | "remessa" | "lote" | "subdivisao" | "corte" | "dataSaida" | "categoria" | "urgente" | "cliente" | "obs"> | null {
   const upper = sku.toUpperCase().trim();
   const prefix = findPrefix(upper);
   if (!prefix) return null;
@@ -134,6 +135,7 @@ export function createLabel(
     quantidade,
     remessa,
     lote,
+    subdivisao: "",
     corte: "",
     dataSaida,
     categoria,
@@ -172,7 +174,7 @@ export function splitIntoLots(label: ParsedLabel): ParsedLabel[] {
   const total = label.quantidade;
   
   if (total <= maxLot) {
-    return [{ ...label, lote: label.lote || "L1", corte: "" }];
+    return [{ ...label, subdivisao: "", corte: "" }];
   }
   
   const numLots = Math.ceil(total / maxLot);
@@ -186,7 +188,7 @@ export function splitIntoLots(label: ParsedLabel): ParsedLabel[] {
       ...label,
       id: i === 0 ? label.id : crypto.randomUUID(),
       quantidade: qty,
-      lote: `${label.lote || "L"} ${i + 1} de ${numLots}`,
+      subdivisao: `${i + 1} de ${numLots}`,
       corte: "",
     });
   }
@@ -216,6 +218,7 @@ export function createManualLabel(data: {
     quantidade: data.quantidade,
     remessa: data.remessa,
     lote: data.lote,
+    subdivisao: "",
     corte: "",
     dataSaida: data.dataSaida,
     categoria: data.categoria,
