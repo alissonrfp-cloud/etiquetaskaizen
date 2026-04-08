@@ -88,7 +88,7 @@ function calcMedidasCorte(larguraCm: number, alturaCm: number, isDupla: boolean,
   return `2 partes de ${lStr}m x ${aStr}m`;
 }
 
-export function parseSku(sku: string): Omit<ParsedLabel, "id" | "quantidade" | "remessa" | "lote" | "corte" | "dataSaida" | "categoria" | "urgente" | "cliente" | "obs"> | null {
+export function parseSku(sku: string): Omit<ParsedLabel, "id" | "quantidade" | "remessa" | "lote" | "subdivisao" | "corte" | "dataSaida" | "categoria" | "urgente" | "cliente" | "obs"> | null {
   const upper = sku.toUpperCase().trim();
   const prefix = findPrefix(upper);
   if (!prefix) return null;
