@@ -127,10 +127,9 @@ function PrintListView({ labels }: { labels: ParsedLabel[] }) {
       <table className="w-full border-collapse" style={{ fontSize: "10px" }}>
         <thead>
           <tr>
-             <th className={cellClass}>Remessa</th>
+            <th className={cellClass}>Remessa</th>
             <th className={cellClass}>Lote</th>
             <th className={cellClass}>Subdivisão</th>
-            <th className={cellClass}>Quant.</th>
             <th className={cellClass}>Quant.</th>
             <th className={cellClass}>Corte</th>
             <th className={cellClass}>Saída</th>
@@ -143,6 +142,7 @@ function PrintListView({ labels }: { labels: ParsedLabel[] }) {
             <th className={cellClass}>Costura</th>
             <th className={cellClass}>Cliente</th>
             <th className={cellClass}>Retirada</th>
+            <th className={cellClass}>OBS</th>
           </tr>
         </thead>
         <tbody>
@@ -156,7 +156,7 @@ function PrintListView({ labels }: { labels: ParsedLabel[] }) {
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.quantidade}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.corte}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.saida.backgroundColor, color: colors.saida.textColor, fontWeight: label.urgente ? 700 : 400 }}>
-                  {label.dataSaida}
+                  {label.dataSaida}{label.urgente ? " ⚠" : ""}
                 </td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.tamanho}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, whiteSpace: "pre-line" }}>{label.medidasCorte}</td>
@@ -167,6 +167,7 @@ function PrintListView({ labels }: { labels: ParsedLabel[] }) {
                 <td className={cellClass} style={{ minWidth: 40 }}></td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.cliente}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.saida.backgroundColor, color: colors.saida.textColor, fontWeight: 700 }}>{label.dataSaida}</td>
+                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.obs || "—"}</td>
               </tr>
             );
           })}
@@ -175,8 +176,7 @@ function PrintListView({ labels }: { labels: ParsedLabel[] }) {
             <td className={cellClass}></td>
             <td className={cellClass}></td>
             <td className={cellClass} style={{ fontWeight: 700 }}>{totalQty}</td>
-            <td className={cellClass}>0</td>
-            <td className={cellClass} colSpan={10}></td>
+            <td className={cellClass} colSpan={12}></td>
           </tr>
         </tbody>
       </table>
@@ -189,87 +189,88 @@ function PrintLabelsView({ labels }: { labels: ParsedLabel[] }) {
     <div>
       {labels.map((label) => {
         const colors = getLabelColors(label.categoria, label.parteSuperior, label.isDupla, label.urgente);
+        const cellStyle = (bg: string, color: string, extra?: React.CSSProperties): React.CSSProperties => ({
+          backgroundColor: bg,
+          color,
+          borderRight: "1px solid #000",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "2px 4px",
+          ...extra,
+        });
+
         return (
           <div
             key={label.id}
-            className="flex items-center border-b-2 border-black"
+            className="flex items-stretch border-b-2 border-black"
             style={{
               height: "3cm",
-              backgroundColor: colors.row.backgroundColor,
               pageBreakInside: "avoid",
               fontSize: "14px",
               fontWeight: 700,
             }}
           >
-            <div className="flex-1 flex items-center justify-between px-2 gap-2" style={{ height: "100%" }}>
-              <div className="text-center" style={{ minWidth: 60 }}>
-                <div style={{ fontSize: "9px", fontWeight: 400 }}>Remessa</div>
-                <div>{label.remessa}</div>
-              </div>
-              <div className="text-center" style={{ minWidth: 50 }}>
-                <div style={{ fontSize: "9px", fontWeight: 400 }}>Lote</div>
-                <div>{label.lote}</div>
-              </div>
-              <div className="text-center" style={{ minWidth: 50 }}>
-                <div style={{ fontSize: "9px", fontWeight: 400 }}>Subdiv.</div>
-                <div>{label.subdivisao || "—"}</div>
-              </div>
-              <div className="text-center" style={{ minWidth: 40 }}>
-                <div style={{ fontSize: "9px", fontWeight: 400 }}>Qtd</div>
-                <div style={{ fontSize: "18px" }}>{label.quantidade}</div>
-              </div>
-              <div className="text-center" style={{ minWidth: 50 }}>
-                <div style={{ fontSize: "9px", fontWeight: 400 }}>Saída</div>
-                <div style={{ color: label.urgente ? "#FF0000" : undefined }}>
-                  {label.dataSaida}
-                </div>
-              </div>
-              <div className="text-center" style={{ minWidth: 80 }}>
-                <div style={{ fontSize: "9px", fontWeight: 400 }}>Tamanho</div>
-                <div>{label.tamanho}</div>
-              </div>
-              <div className="text-center flex-1" style={{ whiteSpace: "pre-line", fontSize: "11px" }}>
-                <div style={{ fontSize: "9px", fontWeight: 400 }}>Tamanho do Corte</div>
-                <div>{label.medidasCorte}</div>
-              </div>
-              <div
-                className="text-center"
-                style={{
-                  minWidth: 120,
-                  backgroundColor: colors.modelo.backgroundColor,
-                  color: colors.modelo.textColor,
-                  padding: "2px 6px",
-                  borderRadius: 4,
-                }}
-              >
-                <div style={{ fontSize: "9px", fontWeight: 400 }}>Modelo</div>
-                <div>{label.modelo}</div>
-              </div>
-              <div
-                className="text-center"
-                style={{
-                  minWidth: 70,
-                  backgroundColor: colors.parteSup.backgroundColor,
-                  color: colors.parteSup.textColor,
-                  padding: "2px 4px",
-                  borderRadius: 4,
-                }}
-              >
-                <div style={{ fontSize: "9px", fontWeight: 400 }}>P. Sup</div>
-                <div style={{ fontSize: "12px" }}>{label.parteSuperior}</div>
-              </div>
-              <div className="text-center" style={{ minWidth: 50 }}>
-                <div style={{ fontSize: "9px", fontWeight: 400 }}>Cortador</div>
-                <div>&nbsp;</div>
-              </div>
-              <div className="text-center" style={{ minWidth: 60 }}>
-                <div style={{ fontSize: "9px", fontWeight: 400 }}>Cliente</div>
-                <div style={{ fontSize: "11px" }}>{label.cliente}</div>
-              </div>
-              <div className="text-center" style={{ minWidth: 50, color: colors.saida.textColor }}>
-                <div style={{ fontSize: "9px", fontWeight: 400 }}>Retirada</div>
-                <div style={{ color: "#FF0000", fontWeight: 900 }}>{label.dataSaida}</div>
-              </div>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 60 })}>
+              <div style={{ fontSize: "9px", fontWeight: 400 }}>Remessa</div>
+              <div>{label.remessa}</div>
+            </div>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 50 })}>
+              <div style={{ fontSize: "9px", fontWeight: 400 }}>Lote</div>
+              <div>{label.lote}</div>
+            </div>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 50 })}>
+              <div style={{ fontSize: "9px", fontWeight: 400 }}>Subdiv.</div>
+              <div>{label.subdivisao || "—"}</div>
+            </div>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 40 })}>
+              <div style={{ fontSize: "9px", fontWeight: 400 }}>Qtd</div>
+              <div style={{ fontSize: "18px" }}>{label.quantidade}</div>
+            </div>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 40 })}>
+              <div style={{ fontSize: "9px", fontWeight: 400 }}>Corte</div>
+              <div>{label.corte || ""}</div>
+            </div>
+            <div style={cellStyle(colors.saida.backgroundColor, colors.saida.textColor, { minWidth: 55 })}>
+              <div style={{ fontSize: "9px", fontWeight: 400 }}>Saída</div>
+              <div>{label.dataSaida}{label.urgente ? " ⚠" : ""}</div>
+            </div>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 80 })}>
+              <div style={{ fontSize: "9px", fontWeight: 400 }}>Tamanho</div>
+              <div>{label.tamanho}</div>
+            </div>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { flex: 1, whiteSpace: "pre-line", fontSize: "11px" })}>
+              <div style={{ fontSize: "9px", fontWeight: 400 }}>Tam. Corte</div>
+              <div>{label.medidasCorte}</div>
+            </div>
+            <div style={cellStyle(colors.modelo.backgroundColor, colors.modelo.textColor, { minWidth: 120 })}>
+              <div style={{ fontSize: "9px", fontWeight: 400 }}>Modelo</div>
+              <div>{label.modelo}</div>
+            </div>
+            <div style={cellStyle(colors.parteSup.backgroundColor, colors.parteSup.textColor, { minWidth: 70 })}>
+              <div style={{ fontSize: "9px", fontWeight: 400 }}>P. Sup</div>
+              <div style={{ fontSize: "12px" }}>{label.parteSuperior}</div>
+            </div>
+            <div style={cellStyle("#FFFFFF", "#000000", { minWidth: 50 })}>
+              <div style={{ fontSize: "9px", fontWeight: 400 }}>Cortador</div>
+              <div>&nbsp;</div>
+            </div>
+            <div style={cellStyle("#FFFFFF", "#000000", { minWidth: 50 })}>
+              <div style={{ fontSize: "9px", fontWeight: 400 }}>Overloque</div>
+              <div>&nbsp;</div>
+            </div>
+            <div style={cellStyle("#FFFFFF", "#000000", { minWidth: 50 })}>
+              <div style={{ fontSize: "9px", fontWeight: 400 }}>Costura</div>
+              <div>&nbsp;</div>
+            </div>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 60 })}>
+              <div style={{ fontSize: "9px", fontWeight: 400 }}>Cliente</div>
+              <div style={{ fontSize: "11px" }}>{label.cliente}</div>
+            </div>
+            <div style={cellStyle(colors.saida.backgroundColor, colors.saida.textColor, { minWidth: 55, borderRight: "none" })}>
+              <div style={{ fontSize: "9px", fontWeight: 400 }}>Retirada</div>
+              <div style={{ fontWeight: 900 }}>{label.dataSaida}</div>
             </div>
           </div>
         );
