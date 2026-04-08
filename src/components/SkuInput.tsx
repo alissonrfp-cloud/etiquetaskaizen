@@ -15,7 +15,7 @@ function generateSuggestions(query: string): string[] {
   for (const p of SKU_PREFIXES) {
     if (p.prefix.startsWith(upper) || upper.startsWith(p.prefix)) {
       for (const cor of CORES_TECIDO) {
-        const sizes = ["200X250", "300X250", "300X270", "400X250", "400X270", "500X270", "600X270"];
+        const sizes = ["220X130", "260X130", "260X180", "300X250", "300X270", "400X250", "400X270", "500X270", "600X270"];
         for (const size of sizes) {
           const sku = `${p.prefix}${size}${cor.toUpperCase()}`;
           if (sku.startsWith(upper)) {

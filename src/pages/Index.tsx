@@ -18,7 +18,7 @@ import { Plus, FileDown, Tag, CalendarIcon, AlertTriangle, PenLine, Barcode } fr
 import { PdfUpload } from "@/components/PdfUpload";
 import { cn } from "@/lib/utils";
 
-const CATEGORIAS: Categoria[] = ["marketplace", "full_shopee", "full_ml", "revenda", "drop", "estoque"];
+const CATEGORIAS: Categoria[] = ["marketplace", "full_shopee", "full_ml", "revenda", "drop", "estoque", "wilson"];
 
 const PARTES_SUPERIORES = ["Trilho Suiço", "Ilhós Redondo Cromado", "Wave"];
 

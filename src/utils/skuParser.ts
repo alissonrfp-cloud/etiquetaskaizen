@@ -1,6 +1,6 @@
 import { SKU_PREFIXES, type SkuPrefix } from "@/data/skuDatabase";
 
-export type Categoria = "marketplace" | "full_shopee" | "full_ml" | "revenda" | "drop" | "estoque";
+export type Categoria = "marketplace" | "full_shopee" | "full_ml" | "revenda" | "drop" | "estoque" | "wilson";
 
 export interface ParsedLabel {
   id: string;
@@ -53,7 +53,24 @@ function formatSize(larguraCm: number, alturaCm: number): string {
   return `${l}m x ${a}m`;
 }
 
+// Window curtain sizes that use "1 parte cortada ao meio" pattern
+const JANELA_SIZES: Record<string, string> = {
+  "220X130": "1,20",
+  "260X130": "1,40",
+  "260X180": "1,90",
+};
+
 function calcMedidasCorte(larguraCm: number, alturaCm: number, isDupla: boolean, duplaType?: string): string {
+  const sizeKey = `${larguraCm}X${alturaCm}`;
+  const janelaAltura = JANELA_SIZES[sizeKey];
+
+  if (janelaAltura) {
+    if (isDupla) {
+      return `1 parte de Flamê de ${janelaAltura}m cortada ao meio\n1 parte de ${duplaType || "Blackout"} de ${janelaAltura}m cortada ao meio`;
+    }
+    return `1 parte de ${janelaAltura}m cortada ao meio`;
+  }
+
   const metadeLargura = larguraCm / 2 + 10;
   const alturaCorte = alturaCm + 10;
   const lStr = (metadeLargura / 100).toFixed(2).replace(".", ",");
