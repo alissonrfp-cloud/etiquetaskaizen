@@ -8,6 +8,7 @@ export interface ParsedLabel {
   quantidade: number;
   remessa: string;
   lote: string;
+  subdivisao: string;
   corte: string;
   dataSaida: string;
   categoria: Categoria;
