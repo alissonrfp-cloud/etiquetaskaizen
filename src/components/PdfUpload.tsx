@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, Loader2 } from "lucide-react";
+import { Upload, Loader2 } from "lucide-react";
 import { parsePickingListPdf } from "@/utils/pdfParser";
 import { createLabel, type ParsedLabel, type Categoria } from "@/utils/skuParser";
 import { format } from "date-fns";
@@ -8,11 +8,13 @@ import { useToast } from "@/hooks/use-toast";
 
 interface PdfUploadProps {
   remessa: string;
+  lote: string;
   categoria: Categoria;
+  cliente: string;
   onLabelsAdded: (labels: ParsedLabel[]) => void;
 }
 
-export function PdfUpload({ remessa, categoria, onLabelsAdded }: PdfUploadProps) {
+export function PdfUpload({ remessa, lote, categoria, cliente, onLabelsAdded }: PdfUploadProps) {
   const [loading, setLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -34,7 +36,7 @@ export function PdfUpload({ remessa, categoria, onLabelsAdded }: PdfUploadProps)
       const errors: string[] = [];
 
       for (const item of items) {
-        const label = createLabel(item.sku, item.quantidade, remessa, dataSaida, categoria, false);
+        const label = createLabel(item.sku, item.quantidade, remessa, lote, dataSaida, categoria, false, cliente);
         if (label) {
           labels.push(label);
         } else {

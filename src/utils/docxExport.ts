@@ -13,7 +13,7 @@ import {
 } from "docx";
 import { saveAs } from "file-saver";
 import type { ParsedLabel } from "./skuParser";
-import { getLabelColors, CATEGORIA_LABELS } from "@/data/colorRules";
+import { getLabelColors } from "@/data/colorRules";
 
 const CELL_BORDER = { style: BorderStyle.SINGLE, size: 1, color: "000000" };
 const BORDERS = { top: CELL_BORDER, bottom: CELL_BORDER, left: CELL_BORDER, right: CELL_BORDER };
@@ -42,38 +42,40 @@ function makeHeaderCell(text: string, width: number): TableCell {
 }
 
 const COL = {
-  categ: 900,
-  remessa: 900,
-  saida: 900,
-  quant: 550,
-  tamanho: 1000,
+  remessa: 800,
+  lote: 700,
+  quant: 500,
+  corte: 400,
+  saida: 800,
+  tamanho: 900,
   medidasCorte: 1600,
   modelo: 1400,
-  parteInf: 700,
-  parteSup: 1000,
-  obs: 500,
+  parteSup: 900,
   cortador: 600,
-  refilador: 600,
-  costureiro: 700,
+  overloque: 600,
+  costura: 600,
+  cliente: 800,
+  retirada: 700,
 };
 const TOTAL_W = Object.values(COL).reduce((a, b) => a + b, 0);
 
 function buildLabelTable(labels: ParsedLabel[]): Table {
   const headerRow = new TableRow({
     children: [
-      makeHeaderCell("Categ.", COL.categ),
       makeHeaderCell("Remessa", COL.remessa),
-      makeHeaderCell("Saída", COL.saida),
+      makeHeaderCell("Lote", COL.lote),
       makeHeaderCell("Quant.", COL.quant),
+      makeHeaderCell("Corte", COL.corte),
+      makeHeaderCell("Saída", COL.saida),
       makeHeaderCell("Tamanho", COL.tamanho),
-      makeHeaderCell("Medidas do Corte", COL.medidasCorte),
+      makeHeaderCell("Tamanho do Corte", COL.medidasCorte),
       makeHeaderCell("Modelo", COL.modelo),
-      makeHeaderCell("P. Inferior", COL.parteInf),
-      makeHeaderCell("P. Superior", COL.parteSup),
-      makeHeaderCell("OBS", COL.obs),
+      makeHeaderCell("Parte Superior", COL.parteSup),
       makeHeaderCell("Cortador", COL.cortador),
-      makeHeaderCell("Refilador", COL.refilador),
-      makeHeaderCell("Costureiro", COL.costureiro),
+      makeHeaderCell("Overloque", COL.overloque),
+      makeHeaderCell("Costura", COL.costura),
+      makeHeaderCell("Cliente", COL.cliente),
+      makeHeaderCell("Retirada", COL.retirada),
     ],
   });
 
@@ -83,8 +85,10 @@ function buildLabelTable(labels: ParsedLabel[]): Table {
 
     return new TableRow({
       children: [
-        makeCell(CATEGORIA_LABELS[label.categoria], COL.categ, bg, true),
         makeCell(label.remessa, COL.remessa, bg),
+        makeCell(label.lote, COL.lote, bg, true),
+        makeCell(String(label.quantidade), COL.quant, bg, true),
+        makeCell(label.corte || "", COL.corte, bg),
         makeCell(
           label.dataSaida + (label.urgente ? " ⚠" : ""),
           COL.saida,
@@ -92,24 +96,44 @@ function buildLabelTable(labels: ParsedLabel[]): Table {
           label.urgente,
           colors.saida.textColor
         ),
-        makeCell(String(label.quantidade), COL.quant, bg),
         makeCell(label.tamanho, COL.tamanho, bg),
         makeCell(label.medidasCorte, COL.medidasCorte, bg),
         makeCell(label.modelo, COL.modelo, colors.modelo.backgroundColor, true, colors.modelo.textColor),
-        makeCell(label.parteInferior, COL.parteInf, bg),
-        makeCell(label.parteSuperior, COL.parteSup, colors.parteSup.backgroundColor, false, colors.parteSup.textColor),
-        makeCell(label.obs, COL.obs, bg),
+        makeCell(label.parteSuperior, COL.parteSup, colors.parteSup.backgroundColor, true, colors.parteSup.textColor),
         makeCell("", COL.cortador, "#FFFFFF"),
-        makeCell("", COL.refilador, "#FFFFFF"),
-        makeCell("", COL.costureiro, "#FFFFFF"),
+        makeCell("", COL.overloque, "#FFFFFF"),
+        makeCell("", COL.costura, "#FFFFFF"),
+        makeCell(label.cliente, COL.cliente, bg),
+        makeCell(label.dataSaida, COL.retirada, colors.saida.backgroundColor, true, colors.saida.textColor),
       ],
     });
+  });
+
+  // Total row
+  const totalQty = labels.reduce((sum, l) => sum + l.quantidade, 0);
+  const totalRow = new TableRow({
+    children: [
+      makeCell("TOTAL", COL.remessa, "#FFFFFF", true),
+      makeCell("", COL.lote, "#FFFFFF"),
+      makeCell(String(totalQty), COL.quant, "#FFFFFF", true),
+      makeCell("0", COL.corte, "#FFFFFF"),
+      makeCell("", COL.saida, "#FFFFFF"),
+      makeCell("", COL.tamanho, "#FFFFFF"),
+      makeCell("", COL.medidasCorte, "#FFFFFF"),
+      makeCell("", COL.modelo, "#FFFFFF"),
+      makeCell("", COL.parteSup, "#FFFFFF"),
+      makeCell("", COL.cortador, "#FFFFFF"),
+      makeCell("", COL.overloque, "#FFFFFF"),
+      makeCell("", COL.costura, "#FFFFFF"),
+      makeCell("", COL.cliente, "#FFFFFF"),
+      makeCell("", COL.retirada, "#FFFFFF"),
+    ],
   });
 
   return new Table({
     width: { size: TOTAL_W, type: WidthType.DXA },
     columnWidths: Object.values(COL),
-    rows: [headerRow, ...dataRows],
+    rows: [headerRow, ...dataRows, totalRow],
   });
 }
 

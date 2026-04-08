@@ -7,6 +7,8 @@ export interface ParsedLabel {
   sku: string;
   quantidade: number;
   remessa: string;
+  lote: string;
+  corte: string;
   dataSaida: string;
   categoria: Categoria;
   urgente: boolean;
@@ -85,7 +87,7 @@ function calcMedidasCorte(larguraCm: number, alturaCm: number, isDupla: boolean,
   return `2 partes de ${lStr}m x ${aStr}m`;
 }
 
-export function parseSku(sku: string): Omit<ParsedLabel, "id" | "quantidade" | "remessa" | "dataSaida" | "categoria" | "urgente" | "cliente" | "obs"> | null {
+export function parseSku(sku: string): Omit<ParsedLabel, "id" | "quantidade" | "remessa" | "lote" | "corte" | "dataSaida" | "categoria" | "urgente" | "cliente" | "obs"> | null {
   const upper = sku.toUpperCase().trim();
   const prefix = findPrefix(upper);
   if (!prefix) return null;
@@ -117,6 +119,7 @@ export function createLabel(
   sku: string,
   quantidade: number,
   remessa: string,
+  lote: string,
   dataSaida: string,
   categoria: Categoria,
   urgente: boolean,
@@ -130,6 +133,8 @@ export function createLabel(
     id: crypto.randomUUID(),
     quantidade,
     remessa,
+    lote,
+    corte: "",
     dataSaida,
     categoria,
     urgente,
@@ -139,9 +144,60 @@ export function createLabel(
   };
 }
 
+// Lot subdivision rules
+function getMaxLotSize(isDupla: boolean, modelo: string, larguraCm: number): number {
+  const upper = modelo.toUpperCase();
+  
+  // Dupla (Blackout + Gás de Linho) - same as blackout rules
+  if (isDupla) {
+    return larguraCm >= 400 ? 5 : 10;
+  }
+  
+  // Gás de Linho + Forro de Microfibra patterns
+  if (upper.includes("MICROFIBRA") || upper.includes("FLAMÊ")) {
+    return larguraCm >= 500 ? 5 : 10;
+  }
+  
+  // Blackout
+  if (upper.includes("BLACKOUT")) {
+    return larguraCm >= 400 ? 5 : 10;
+  }
+  
+  // Default: 10
+  return larguraCm >= 400 ? 5 : 10;
+}
+
+export function splitIntoLots(label: ParsedLabel): ParsedLabel[] {
+  const maxLot = getMaxLotSize(label.isDupla, label.modelo, label.larguraCm);
+  const total = label.quantidade;
+  
+  if (total <= maxLot) {
+    return [{ ...label, lote: label.lote || "L1", corte: "" }];
+  }
+  
+  const numLots = Math.ceil(total / maxLot);
+  const lots: ParsedLabel[] = [];
+  let remaining = total;
+  
+  for (let i = 0; i < numLots; i++) {
+    const qty = Math.min(maxLot, remaining);
+    remaining -= qty;
+    lots.push({
+      ...label,
+      id: i === 0 ? label.id : crypto.randomUUID(),
+      quantidade: qty,
+      lote: `${label.lote || "L"} ${i + 1} de ${numLots}`,
+      corte: "",
+    });
+  }
+  
+  return lots;
+}
+
 export function createManualLabel(data: {
   quantidade: number;
   remessa: string;
+  lote: string;
   dataSaida: string;
   categoria: Categoria;
   urgente: boolean;
@@ -152,12 +208,15 @@ export function createManualLabel(data: {
   parteInferior: string;
   isDupla: boolean;
   obs: string;
+  cliente?: string;
 }): ParsedLabel {
   return {
     id: crypto.randomUUID(),
     sku: "MANUAL",
     quantidade: data.quantidade,
     remessa: data.remessa,
+    lote: data.lote,
+    corte: "",
     dataSaida: data.dataSaida,
     categoria: data.categoria,
     urgente: data.urgente,
@@ -169,7 +228,7 @@ export function createManualLabel(data: {
     corTecido: "",
     parteInferior: data.parteInferior,
     parteSuperior: data.parteSuperior,
-    cliente: "Kaizen Enxovais",
+    cliente: data.cliente || "Kaizen Enxovais",
     obs: data.obs,
     isDupla: data.isDupla,
   };

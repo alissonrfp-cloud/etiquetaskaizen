@@ -10,13 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SkuInput } from "@/components/SkuInput";
 import { LabelPreview } from "@/components/LabelPreview";
 import { LabelList } from "@/components/LabelList";
-import { createLabel, createManualLabel, type ParsedLabel, type Categoria, parseSku } from "@/utils/skuParser";
+import { createLabel, createManualLabel, splitIntoLots, type ParsedLabel, type Categoria, parseSku } from "@/utils/skuParser";
 import { CATEGORIA_LABELS, CATEGORIA_COLORS } from "@/data/colorRules";
 import { exportToDocx } from "@/utils/docxExport";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, FileDown, Tag, CalendarIcon, AlertTriangle, PenLine, Barcode } from "lucide-react";
+import { Plus, FileDown, Tag, CalendarIcon, AlertTriangle, PenLine, Barcode, Printer } from "lucide-react";
 import { PdfUpload } from "@/components/PdfUpload";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 const CATEGORIAS: Categoria[] = ["marketplace", "full_shopee", "full_ml", "revenda", "drop", "estoque", "wilson"];
 
@@ -27,19 +28,22 @@ const Index = () => {
   const [sku, setSku] = useState("");
   const [quantidade, setQuantidade] = useState("");
   const [remessa, setRemessa] = useState(new Date().toLocaleDateString("pt-BR"));
+  const [lote, setLote] = useState("");
   const [dataSaida, setDataSaida] = useState<Date>(new Date());
   const [categoria, setCategoria] = useState<Categoria>("marketplace");
   const [urgente, setUrgente] = useState(false);
   const [obs, setObs] = useState("");
+  const [cliente, setCliente] = useState("Kaizen Enxovais");
   const [labels, setLabels] = useState<ParsedLabel[]>([]);
+  const [autoLotes, setAutoLotes] = useState(true);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Manual mode fields
   const [manModelo, setManModelo] = useState("");
   const [manTamanho, setManTamanho] = useState("");
   const [manMedidas, setManMedidas] = useState("");
   const [manParteSup, setManParteSup] = useState("Trilho Suiço");
-  const [manParteInf, setManParteInf] = useState("Bainha");
   const [manDupla, setManDupla] = useState(false);
 
   const preview = !modoManual && sku.length >= 8 ? parseSku(sku) : null;
@@ -60,6 +64,7 @@ const Index = () => {
       const label = createManualLabel({
         quantidade: qty,
         remessa,
+        lote,
         dataSaida: dataSaidaStr,
         categoria,
         urgente,
@@ -67,28 +72,43 @@ const Index = () => {
         tamanho: manTamanho,
         medidasCorte: manMedidas,
         parteSuperior: manParteSup,
-        parteInferior: manParteInf,
+        parteInferior: "Bainha",
         isDupla: manDupla,
         obs,
+        cliente,
       });
-      setLabels((prev) => [...prev, label]);
+
+      if (autoLotes) {
+        const lots = splitIntoLots(label);
+        setLabels((prev) => [...prev, ...lots]);
+        toast({ title: `${lots.length} etiqueta(s) adicionada(s)!` });
+      } else {
+        setLabels((prev) => [...prev, label]);
+        toast({ title: "Etiqueta manual adicionada!" });
+      }
       setManModelo("");
       setManTamanho("");
       setManMedidas("");
       setQuantidade("");
       setObs("");
-      toast({ title: "Etiqueta manual adicionada!" });
     } else {
-      const label = createLabel(sku, qty, remessa, dataSaidaStr, categoria, urgente, "Kaizen Enxovais", obs);
+      const label = createLabel(sku, qty, remessa, lote, dataSaidaStr, categoria, urgente, cliente, obs);
       if (!label) {
         toast({ title: "SKU inválido", description: "Verifique o código digitado.", variant: "destructive" });
         return;
       }
-      setLabels((prev) => [...prev, label]);
+
+      if (autoLotes) {
+        const lots = splitIntoLots(label);
+        setLabels((prev) => [...prev, ...lots]);
+        toast({ title: `${lots.length} etiqueta(s) adicionada(s)!` });
+      } else {
+        setLabels((prev) => [...prev, label]);
+        toast({ title: "Etiqueta adicionada!" });
+      }
       setSku("");
       setQuantidade("");
       setObs("");
-      toast({ title: "Etiqueta adicionada!" });
     }
   };
 
@@ -107,6 +127,16 @@ const Index = () => {
     } catch {
       toast({ title: "Erro ao exportar", variant: "destructive" });
     }
+  };
+
+  const handlePrint = () => {
+    if (labels.length === 0) {
+      toast({ title: "Nenhuma etiqueta para imprimir", variant: "destructive" });
+      return;
+    }
+    // Store labels in sessionStorage for the print page
+    sessionStorage.setItem("printLabels", JSON.stringify(labels));
+    navigate("/imprimir");
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -129,18 +159,28 @@ const Index = () => {
         <Card>
           <CardHeader className="pb-3 flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Nova Etiqueta</CardTitle>
-            <Button
-              variant={modoManual ? "default" : "outline"}
-              size="sm"
-              onClick={() => setModoManual(!modoManual)}
-              className="text-xs"
-            >
-              {modoManual ? (
-                <><Barcode className="h-3.5 w-3.5 mr-1" /> Modo SKU</>
-              ) : (
-                <><PenLine className="h-3.5 w-3.5 mr-1" /> Modo Manual</>
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant={autoLotes ? "default" : "outline"}
+                size="sm"
+                onClick={() => setAutoLotes(!autoLotes)}
+                className="text-xs"
+              >
+                {autoLotes ? "Auto-Lotes: ON" : "Auto-Lotes: OFF"}
+              </Button>
+              <Button
+                variant={modoManual ? "default" : "outline"}
+                size="sm"
+                onClick={() => setModoManual(!modoManual)}
+                className="text-xs"
+              >
+                {modoManual ? (
+                  <><Barcode className="h-3.5 w-3.5 mr-1" /> Modo SKU</>
+                ) : (
+                  <><PenLine className="h-3.5 w-3.5 mr-1" /> Modo Manual</>
+                )}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Category Buttons */}
@@ -150,7 +190,11 @@ const Index = () => {
                 {CATEGORIAS.map((cat) => (
                   <button
                     key={cat}
-                    onClick={() => setCategoria(cat)}
+                    onClick={() => {
+                      setCategoria(cat);
+                      if (cat === "wilson") setCliente("Wilson Crepaldi");
+                      else setCliente("Kaizen Enxovais");
+                    }}
                     className={cn(
                       "px-3 py-1.5 rounded-md text-xs font-semibold border-2 transition-all",
                       categoria === cat
@@ -228,6 +272,10 @@ const Index = () => {
                   min={1}
                 />
               </div>
+              <div className="md:col-span-1">
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Lote</label>
+                <Input value={lote} onChange={(e) => setLote(e.target.value)} placeholder="L 47" />
+              </div>
               <div className="md:col-span-2">
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Remessa</label>
                 <Input value={remessa} onChange={(e) => setRemessa(e.target.value)} />
@@ -251,6 +299,10 @@ const Index = () => {
                     />
                   </PopoverContent>
                 </Popover>
+              </div>
+              <div className="md:col-span-1">
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Cliente</label>
+                <Input value={cliente} onChange={(e) => setCliente(e.target.value)} />
               </div>
               <div className="md:col-span-1">
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Urgente</label>
@@ -289,13 +341,13 @@ const Index = () => {
                     sku,
                     quantidade: parseInt(quantidade) || 0,
                     remessa,
+                    lote,
+                    corte: "",
                     dataSaida: format(dataSaida, "dd/MM/yyyy"),
                     categoria,
                     urgente,
-                    cliente: "Kaizen Enxovais",
+                    cliente,
                     obs,
-                    larguraCm: preview.larguraCm,
-                    alturaCm: preview.alturaCm,
                     ...preview,
                   }}
                 />
@@ -313,14 +365,32 @@ const Index = () => {
             <div className="flex gap-2">
               <PdfUpload
                 remessa={remessa}
+                lote={lote}
                 categoria={categoria}
-                onLabelsAdded={(newLabels) => setLabels((prev) => [...prev, ...newLabels])}
+                cliente={cliente}
+                onLabelsAdded={(newLabels) => {
+                  if (autoLotes) {
+                    const allLots = newLabels.flatMap(splitIntoLots);
+                    setLabels((prev) => [...prev, ...allLots]);
+                  } else {
+                    setLabels((prev) => [...prev, ...newLabels]);
+                  }
+                }}
               />
               {labels.length > 0 && (
-                <Button onClick={handleExport} variant="outline">
-                  <FileDown className="h-4 w-4 mr-1" />
-                  Exportar DOCX
-                </Button>
+                <>
+                  <Button onClick={handleExport} variant="outline">
+                    <FileDown className="h-4 w-4 mr-1" />
+                    Exportar DOCX
+                  </Button>
+                  <Button onClick={handlePrint} variant="outline">
+                    <Printer className="h-4 w-4 mr-1" />
+                    Imprimir
+                  </Button>
+                  <Button onClick={() => setLabels([])} variant="ghost" className="text-destructive">
+                    Limpar Tudo
+                  </Button>
+                </>
               )}
             </div>
           </CardHeader>
