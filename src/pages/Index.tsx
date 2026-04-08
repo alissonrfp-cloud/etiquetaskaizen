@@ -166,7 +166,7 @@ const Index = () => {
                 onClick={() => setAutoLotes(!autoLotes)}
                 className="text-xs"
               >
-                {autoLotes ? "Auto-Lotes: ON" : "Auto-Lotes: OFF"}
+                {autoLotes ? "Subdivisão: ON" : "Subdivisão: OFF"}
               </Button>
               <Button
                 variant={modoManual ? "default" : "outline"}
@@ -342,6 +342,7 @@ const Index = () => {
                     quantidade: parseInt(quantidade) || 0,
                     remessa,
                     lote,
+                    subdivisao: "",
                     corte: "",
                     dataSaida: format(dataSaida, "dd/MM/yyyy"),
                     categoria,

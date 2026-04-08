@@ -16,6 +16,7 @@ export function LabelPreview({ label }: LabelPreviewProps) {
           <tr className="bg-muted">
             <th className={cellClass}>Remessa</th>
             <th className={cellClass}>Lote</th>
+            <th className={cellClass}>Subdivisão</th>
             <th className={cellClass}>Quant.</th>
             <th className={cellClass}>Corte</th>
             <th className={cellClass}>Saída</th>
@@ -34,6 +35,7 @@ export function LabelPreview({ label }: LabelPreviewProps) {
           <tr>
             <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.remessa}</td>
             <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.lote}</td>
+            <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.subdivisao || "—"}</td>
             <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.quantidade}</td>
             <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.corte || ""}</td>
             <td className={cellClass} style={{ backgroundColor: colors.saida.backgroundColor, color: colors.saida.textColor, fontWeight: label.urgente ? 700 : 400 }}>

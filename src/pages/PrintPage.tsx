@@ -127,8 +127,10 @@ function PrintListView({ labels }: { labels: ParsedLabel[] }) {
       <table className="w-full border-collapse" style={{ fontSize: "10px" }}>
         <thead>
           <tr>
-            <th className={cellClass}>Remessa</th>
+             <th className={cellClass}>Remessa</th>
             <th className={cellClass}>Lote</th>
+            <th className={cellClass}>Subdivisão</th>
+            <th className={cellClass}>Quant.</th>
             <th className={cellClass}>Quant.</th>
             <th className={cellClass}>Corte</th>
             <th className={cellClass}>Saída</th>
@@ -150,6 +152,7 @@ function PrintListView({ labels }: { labels: ParsedLabel[] }) {
               <tr key={label.id}>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.remessa}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.lote}</td>
+                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.subdivisao || "—"}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.quantidade}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.corte}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.saida.backgroundColor, color: colors.saida.textColor, fontWeight: label.urgente ? 700 : 400 }}>
@@ -205,6 +208,10 @@ function PrintLabelsView({ labels }: { labels: ParsedLabel[] }) {
               <div className="text-center" style={{ minWidth: 50 }}>
                 <div style={{ fontSize: "9px", fontWeight: 400 }}>Lote</div>
                 <div>{label.lote}</div>
+              </div>
+              <div className="text-center" style={{ minWidth: 50 }}>
+                <div style={{ fontSize: "9px", fontWeight: 400 }}>Subdiv.</div>
+                <div>{label.subdivisao || "—"}</div>
               </div>
               <div className="text-center" style={{ minWidth: 40 }}>
                 <div style={{ fontSize: "9px", fontWeight: 400 }}>Qtd</div>
