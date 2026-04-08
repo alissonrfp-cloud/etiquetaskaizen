@@ -135,6 +135,7 @@ export function createLabel(
     quantidade,
     remessa,
     lote,
+    subdivisao: "",
     corte: "",
     dataSaida,
     categoria,
@@ -173,7 +174,7 @@ export function splitIntoLots(label: ParsedLabel): ParsedLabel[] {
   const total = label.quantidade;
   
   if (total <= maxLot) {
-    return [{ ...label, lote: label.lote || "L1", corte: "" }];
+    return [{ ...label, subdivisao: "", corte: "" }];
   }
   
   const numLots = Math.ceil(total / maxLot);
@@ -187,7 +188,7 @@ export function splitIntoLots(label: ParsedLabel): ParsedLabel[] {
       ...label,
       id: i === 0 ? label.id : crypto.randomUUID(),
       quantidade: qty,
-      lote: `${label.lote || "L"} ${i + 1} de ${numLots}`,
+      subdivisao: `${i + 1} de ${numLots}`,
       corte: "",
     });
   }
@@ -217,6 +218,7 @@ export function createManualLabel(data: {
     quantidade: data.quantidade,
     remessa: data.remessa,
     lote: data.lote,
+    subdivisao: "",
     corte: "",
     dataSaida: data.dataSaida,
     categoria: data.categoria,
