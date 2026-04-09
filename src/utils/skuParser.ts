@@ -69,7 +69,7 @@ function calcMedidasCorte(larguraCm: number, alturaCm: number, isDupla: boolean,
 
   if (janelaAltura) {
     if (isDupla) {
-      return `1 parte de Flamê de ${janelaAltura}m cortada ao meio\n1 parte de ${duplaType || "Blackout"} de ${janelaAltura}m cortada ao meio`;
+      return `1 parte de ${duplaType || "Blackout"} de ${janelaAltura}m cortada ao meio\n1 parte de Flamê de ${janelaAltura}m cortada ao meio`;
     }
     return `1 parte de ${janelaAltura}m cortada ao meio`;
   }
@@ -82,7 +82,7 @@ function calcMedidasCorte(larguraCm: number, alturaCm: number, isDupla: boolean,
   if (isDupla) {
     const alturaForro = alturaCm + 8;
     const aForroStr = (alturaForro / 100).toFixed(2).replace(".", ",");
-    return `2 partes de Flamê de ${lStr}m x ${aStr}m\n2 partes de ${duplaType || "Blackout"} de ${lStr}m x ${aForroStr}m`;
+    return `2 partes de ${duplaType || "Blackout"} de ${lStr}m x ${aForroStr}m\n2 partes de Flamê de ${lStr}m x ${aStr}m`;
   }
 
   return `2 partes de ${lStr}m x ${aStr}m`;
@@ -147,7 +147,17 @@ export function createLabel(
 }
 
 // Lot subdivision rules
-function getMaxLotSize(isDupla: boolean, modelo: string, larguraCm: number): number {
+function isJanelaSize(larguraCm: number, alturaCm: number): boolean {
+  const key = `${larguraCm}X${alturaCm}`;
+  return key in JANELA_SIZES;
+}
+
+function getMaxLotSize(isDupla: boolean, modelo: string, larguraCm: number, alturaCm: number): number {
+  // Cortinas de janela: até 20 unidades
+  if (isJanelaSize(larguraCm, alturaCm)) {
+    return 20;
+  }
+
   const upper = modelo.toUpperCase();
   
   // Dupla (Blackout + Gás de Linho) - same as blackout rules
@@ -170,7 +180,7 @@ function getMaxLotSize(isDupla: boolean, modelo: string, larguraCm: number): num
 }
 
 export function splitIntoLots(label: ParsedLabel): ParsedLabel[] {
-  const maxLot = getMaxLotSize(label.isDupla, label.modelo, label.larguraCm);
+  const maxLot = getMaxLotSize(label.isDupla, label.modelo, label.larguraCm, label.alturaCm);
   const total = label.quantidade;
   
   if (total <= maxLot) {

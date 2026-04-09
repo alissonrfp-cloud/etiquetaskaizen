@@ -162,9 +162,9 @@ function PrintListView({ labels }: { labels: ParsedLabel[] }) {
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, whiteSpace: "pre-line" }}>{label.medidasCorte}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.modelo.backgroundColor, color: colors.modelo.textColor, fontWeight: 600 }}>{label.modelo}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.parteSup.backgroundColor, color: colors.parteSup.textColor, fontWeight: 700 }}>{label.parteSuperior}</td>
-                <td className={cellClass} style={{ minWidth: 40 }}></td>
-                <td className={cellClass} style={{ minWidth: 40 }}></td>
-                <td className={cellClass} style={{ minWidth: 40 }}></td>
+                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, minWidth: 40 }}></td>
+                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, minWidth: 40 }}></td>
+                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, minWidth: 40 }}></td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.cliente}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.saida.backgroundColor, color: colors.saida.textColor, fontWeight: 700 }}>{label.dataSaida}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.obs || "—"}</td>
@@ -252,15 +252,15 @@ function PrintLabelsView({ labels }: { labels: ParsedLabel[] }) {
               <div style={{ fontSize: "9px", fontWeight: 400 }}>P. Sup</div>
               <div style={{ fontSize: "12px" }}>{label.parteSuperior}</div>
             </div>
-            <div style={cellStyle("#FFFFFF", "#000000", { minWidth: 50 })}>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 50 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Cortador</div>
               <div>&nbsp;</div>
             </div>
-            <div style={cellStyle("#FFFFFF", "#000000", { minWidth: 50 })}>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 50 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Overloque</div>
               <div>&nbsp;</div>
             </div>
-            <div style={cellStyle("#FFFFFF", "#000000", { minWidth: 50 })}>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 50 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Costura</div>
               <div>&nbsp;</div>
             </div>
