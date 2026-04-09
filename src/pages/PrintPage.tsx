@@ -228,45 +228,45 @@ function PrintLabelsView({ labels }: { labels: ParsedLabel[] }) {
               fontWeight: 700,
             }}
           >
-            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 60 })}>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { width: "5%", minWidth: 45 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Remessa</div>
               <div>{label.remessa}</div>
             </div>
-            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 50 })}>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { width: "4%", minWidth: 35 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Lote</div>
               <div>{label.lote}</div>
             </div>
-            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 50 })}>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { width: "4%", minWidth: 35 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Subdiv.</div>
-              <div>{label.subdivisao || "—"}</div>
+              <div style={{ fontSize: "11px" }}>{label.subdivisao || "—"}</div>
             </div>
-            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 40 })}>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { width: "3.5%", minWidth: 30 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Qtd</div>
               <div style={{ fontSize: "18px" }}>{label.quantidade}</div>
             </div>
-            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 40 })}>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { width: "3.5%", minWidth: 30 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Corte</div>
               <div>{label.corte || ""}</div>
             </div>
-            <div style={cellStyle(colors.saida.backgroundColor, colors.saida.textColor, { minWidth: 55 })}>
+            <div style={cellStyle(colors.saida.backgroundColor, colors.saida.textColor, { width: "5%", minWidth: 45 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Saída</div>
-              <div>{label.dataSaida}{label.urgente ? " ⚠" : ""}</div>
+              <div style={{ fontSize: "11px" }}>{label.dataSaida}{label.urgente ? " ⚠" : ""}</div>
             </div>
-            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 80 })}>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { width: "7%", minWidth: 60 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Tamanho</div>
-              <div>{label.tamanho}</div>
+              <div style={{ fontSize: "12px" }}>{label.tamanho}</div>
             </div>
-            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { flex: 1, whiteSpace: "pre-line", fontSize: "11px" })}>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { flex: 1, whiteSpace: "pre-line", fontSize: "10px", textAlign: "left", paddingLeft: 6 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Tam. Corte</div>
               <div>{label.medidasCorte}</div>
             </div>
-            <div style={cellStyle(colors.modelo.backgroundColor, colors.modelo.textColor, { minWidth: 120 })}>
+            <div style={cellStyle(colors.modelo.backgroundColor, colors.modelo.textColor, { width: "12%", minWidth: 90 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Modelo</div>
-              <div>{label.modelo}</div>
+              <div style={{ fontSize: "12px" }}>{label.modelo}</div>
             </div>
-            <div style={cellStyle(colors.parteSup.backgroundColor, colors.parteSup.textColor, { minWidth: 70 })}>
+            <div style={cellStyle(colors.parteSup.backgroundColor, colors.parteSup.textColor, { width: "7%", minWidth: 55 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>P. Sup</div>
-              <div style={{ fontSize: "12px" }}>{label.parteSuperior}</div>
+              <div style={{ fontSize: "10px" }}>{label.parteSuperior}</div>
             </div>
             <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 50 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Cortador</div>
