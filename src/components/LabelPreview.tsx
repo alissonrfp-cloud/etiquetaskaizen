@@ -45,9 +45,9 @@ export function LabelPreview({ label }: LabelPreviewProps) {
             <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, whiteSpace: "pre-line" }}>{label.medidasCorte}</td>
             <td className={cellClass} style={{ backgroundColor: colors.modelo.backgroundColor, color: colors.modelo.textColor, fontWeight: 600 }}>{label.modelo}</td>
             <td className={cellClass} style={{ backgroundColor: colors.parteSup.backgroundColor, color: colors.parteSup.textColor }}>{label.parteSuperior}</td>
-            <td className={cellClass} style={{ minWidth: 60 }}></td>
-            <td className={cellClass} style={{ minWidth: 60 }}></td>
-            <td className={cellClass} style={{ minWidth: 60 }}></td>
+            <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, minWidth: 60 }}></td>
+            <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, minWidth: 60 }}></td>
+            <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, minWidth: 60 }}></td>
             <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.cliente}</td>
             <td className={cellClass} style={{ backgroundColor: colors.saida.backgroundColor, color: colors.saida.textColor, fontWeight: 700 }}>
               {label.dataSaida}

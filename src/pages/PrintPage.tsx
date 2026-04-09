@@ -119,30 +119,47 @@ const PrintPage = () => {
 };
 
 function PrintListView({ labels }: { labels: ParsedLabel[] }) {
-  const cellClass = "px-1.5 py-1 border border-black text-[10px] text-center";
+  const thClass = "px-1 py-1 border border-black text-[10px] text-center font-bold";
+  const cellClass = "px-1 py-1 border border-black text-[10px] text-center";
   const totalQty = labels.reduce((sum, l) => sum + l.quantidade, 0);
 
   return (
     <div>
-      <table className="w-full border-collapse" style={{ fontSize: "10px" }}>
+      <table className="w-full border-collapse" style={{ fontSize: "10px", tableLayout: "fixed" }}>
+        <colgroup>
+          <col style={{ width: "5%" }} />   {/* Remessa */}
+          <col style={{ width: "4%" }} />   {/* Lote */}
+          <col style={{ width: "5%" }} />   {/* Subdivisão */}
+          <col style={{ width: "3.5%" }} /> {/* Quant */}
+          <col style={{ width: "4%" }} />   {/* Corte */}
+          <col style={{ width: "6%" }} />   {/* Saída */}
+          <col style={{ width: "7%" }} />   {/* Tamanho */}
+          <col style={{ width: "18%" }} />  {/* Tam. Corte */}
+          <col style={{ width: "12%" }} />  {/* Modelo */}
+          <col style={{ width: "8%" }} />   {/* P. Superior */}
+          <col style={{ width: "5%" }} />   {/* Cortador */}
+          <col style={{ width: "5%" }} />   {/* Overloque */}
+          <col style={{ width: "5%" }} />   {/* Costura */}
+          <col style={{ width: "6%" }} />   {/* Cliente */}
+          <col style={{ width: "6%" }} />   {/* Retirada */}
+        </colgroup>
         <thead>
           <tr>
-            <th className={cellClass}>Remessa</th>
-            <th className={cellClass}>Lote</th>
-            <th className={cellClass}>Subdivisão</th>
-            <th className={cellClass}>Quant.</th>
-            <th className={cellClass}>Corte</th>
-            <th className={cellClass}>Saída</th>
-            <th className={cellClass}>Tamanho</th>
-            <th className={cellClass}>Tamanho do Corte</th>
-            <th className={cellClass}>Modelo</th>
-            <th className={cellClass}>Parte Superior</th>
-            <th className={cellClass}>Cortador</th>
-            <th className={cellClass}>Overloque</th>
-            <th className={cellClass}>Costura</th>
-            <th className={cellClass}>Cliente</th>
-            <th className={cellClass}>Retirada</th>
-            <th className={cellClass}>OBS</th>
+            <th className={thClass}>Remessa</th>
+            <th className={thClass}>Lote</th>
+            <th className={thClass}>Subdivisão</th>
+            <th className={thClass}>Quant.</th>
+            <th className={thClass}>Corte</th>
+            <th className={thClass}>Saída</th>
+            <th className={thClass}>Tamanho</th>
+            <th className={thClass}>Tamanho do Corte</th>
+            <th className={thClass}>Modelo</th>
+            <th className={thClass}>Parte Superior</th>
+            <th className={thClass}>Cortador</th>
+            <th className={thClass}>Overloque</th>
+            <th className={thClass}>Costura</th>
+            <th className={thClass}>Cliente</th>
+            <th className={thClass}>Retirada</th>
           </tr>
         </thead>
         <tbody>
@@ -159,15 +176,14 @@ function PrintListView({ labels }: { labels: ParsedLabel[] }) {
                   {label.dataSaida}{label.urgente ? " ⚠" : ""}
                 </td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.tamanho}</td>
-                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, whiteSpace: "pre-line" }}>{label.medidasCorte}</td>
+                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, whiteSpace: "pre-line", textAlign: "left", paddingLeft: 4 }}>{label.medidasCorte}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.modelo.backgroundColor, color: colors.modelo.textColor, fontWeight: 600 }}>{label.modelo}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.parteSup.backgroundColor, color: colors.parteSup.textColor, fontWeight: 700 }}>{label.parteSuperior}</td>
-                <td className={cellClass} style={{ minWidth: 40 }}></td>
-                <td className={cellClass} style={{ minWidth: 40 }}></td>
-                <td className={cellClass} style={{ minWidth: 40 }}></td>
+                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}></td>
+                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}></td>
+                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}></td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.cliente}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.saida.backgroundColor, color: colors.saida.textColor, fontWeight: 700 }}>{label.dataSaida}</td>
-                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.obs || "—"}</td>
               </tr>
             );
           })}
@@ -176,7 +192,7 @@ function PrintListView({ labels }: { labels: ParsedLabel[] }) {
             <td className={cellClass}></td>
             <td className={cellClass}></td>
             <td className={cellClass} style={{ fontWeight: 700 }}>{totalQty}</td>
-            <td className={cellClass} colSpan={12}></td>
+            <td className={cellClass} colSpan={11}></td>
           </tr>
         </tbody>
       </table>
@@ -212,55 +228,55 @@ function PrintLabelsView({ labels }: { labels: ParsedLabel[] }) {
               fontWeight: 700,
             }}
           >
-            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 60 })}>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { width: "5%", minWidth: 45 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Remessa</div>
               <div>{label.remessa}</div>
             </div>
-            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 50 })}>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { width: "4%", minWidth: 35 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Lote</div>
               <div>{label.lote}</div>
             </div>
-            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 50 })}>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { width: "4%", minWidth: 35 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Subdiv.</div>
-              <div>{label.subdivisao || "—"}</div>
+              <div style={{ fontSize: "11px" }}>{label.subdivisao || "—"}</div>
             </div>
-            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 40 })}>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { width: "3.5%", minWidth: 30 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Qtd</div>
               <div style={{ fontSize: "18px" }}>{label.quantidade}</div>
             </div>
-            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 40 })}>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { width: "3.5%", minWidth: 30 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Corte</div>
               <div>{label.corte || ""}</div>
             </div>
-            <div style={cellStyle(colors.saida.backgroundColor, colors.saida.textColor, { minWidth: 55 })}>
+            <div style={cellStyle(colors.saida.backgroundColor, colors.saida.textColor, { width: "5%", minWidth: 45 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Saída</div>
-              <div>{label.dataSaida}{label.urgente ? " ⚠" : ""}</div>
+              <div style={{ fontSize: "11px" }}>{label.dataSaida}{label.urgente ? " ⚠" : ""}</div>
             </div>
-            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 80 })}>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { width: "7%", minWidth: 60 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Tamanho</div>
-              <div>{label.tamanho}</div>
+              <div style={{ fontSize: "12px" }}>{label.tamanho}</div>
             </div>
-            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { flex: 1, whiteSpace: "pre-line", fontSize: "11px" })}>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { flex: 1, whiteSpace: "pre-line", fontSize: "10px", textAlign: "left", paddingLeft: 6 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Tam. Corte</div>
               <div>{label.medidasCorte}</div>
             </div>
-            <div style={cellStyle(colors.modelo.backgroundColor, colors.modelo.textColor, { minWidth: 120 })}>
+            <div style={cellStyle(colors.modelo.backgroundColor, colors.modelo.textColor, { width: "12%", minWidth: 90 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Modelo</div>
-              <div>{label.modelo}</div>
+              <div style={{ fontSize: "12px" }}>{label.modelo}</div>
             </div>
-            <div style={cellStyle(colors.parteSup.backgroundColor, colors.parteSup.textColor, { minWidth: 70 })}>
+            <div style={cellStyle(colors.parteSup.backgroundColor, colors.parteSup.textColor, { width: "7%", minWidth: 55 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>P. Sup</div>
-              <div style={{ fontSize: "12px" }}>{label.parteSuperior}</div>
+              <div style={{ fontSize: "10px" }}>{label.parteSuperior}</div>
             </div>
-            <div style={cellStyle("#FFFFFF", "#000000", { minWidth: 50 })}>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 50 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Cortador</div>
               <div>&nbsp;</div>
             </div>
-            <div style={cellStyle("#FFFFFF", "#000000", { minWidth: 50 })}>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 50 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Overloque</div>
               <div>&nbsp;</div>
             </div>
-            <div style={cellStyle("#FFFFFF", "#000000", { minWidth: 50 })}>
+            <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { minWidth: 50 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Costura</div>
               <div>&nbsp;</div>
             </div>

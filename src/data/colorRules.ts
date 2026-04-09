@@ -94,7 +94,7 @@ export function getLabelColors(
       const acabamentoWilson = getAcabamentoColor(parteSuperior);
       return {
         row: LARANJA_WILSON,
-        modelo: isDupla ? VERMELHO_DUPLA : LARANJA_WILSON,
+        modelo: LARANJA_WILSON,
         parteSup: acabamentoWilson.backgroundColor !== "#FFFFFF" ? acabamentoWilson : LARANJA_WILSON,
         saida: defaultSaida,
       };
