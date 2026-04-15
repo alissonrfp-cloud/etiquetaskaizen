@@ -12,7 +12,7 @@ const ROXO_SHOPEE: CellColors = { backgroundColor: "#BF80FF", textColor: "#00000
 const AZUL_CLARO_ML: CellColors = { backgroundColor: "#87CEEB", textColor: "#000000" };
 const AMARELO_REVENDA: CellColors = { backgroundColor: "#FFFF00", textColor: "#000000" };
 const CINZA_ESTOQUE: CellColors = { backgroundColor: "#D9D9D9", textColor: "#000000" };
-const LARANJA_WILSON: CellColors = { backgroundColor: "#FF8C00", textColor: "#000000" };
+const LARANJA_WILSON: CellColors = { backgroundColor: "#F29F05", textColor: "#000000" };
 const VERMELHO_DUPLA: CellColors = { backgroundColor: "#FF0000", textColor: "#FFFFFF" };
 const VERMELHO_URGENTE: CellColors = { backgroundColor: "#FF0000", textColor: "#FFFFFF" };
 
@@ -120,5 +120,5 @@ export const CATEGORIA_COLORS: Record<Categoria, string> = {
   revenda: "#FFFF00",
   drop: "#FFFF00",
   estoque: "#D9D9D9",
-  wilson: "#FF8C00",
+  wilson: "#F29F05",
 };
