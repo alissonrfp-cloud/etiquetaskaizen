@@ -21,7 +21,7 @@ import { useNavigate } from "react-router-dom";
 
 const CATEGORIAS: Categoria[] = ["marketplace", "full_shopee", "full_ml", "revenda", "drop", "estoque", "wilson"];
 
-const PARTES_SUPERIORES = ["Trilho Suiço", "Ilhós Redondo Cromado", "Wave"];
+const PARTES_SUPERIORES = ["Trilho Suiço", "Ilhós Redondo Cromado", "Wave", "Trilho Duplo"];
 
 const Index = () => {
   const [modoManual, setModoManual] = useState(false);
