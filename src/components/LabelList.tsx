@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { ParsedLabel } from "@/utils/skuParser";
 import { getLabelColors } from "@/data/colorRules";
 import { Button } from "@/components/ui/button";
@@ -6,9 +7,10 @@ import { Trash2 } from "lucide-react";
 interface LabelListProps {
   labels: ParsedLabel[];
   onRemove: (id: string) => void;
+  onUpdate?: (id: string, field: string, value: string) => void;
 }
 
-export function LabelList({ labels, onRemove }: LabelListProps) {
+export function LabelList({ labels, onRemove, onUpdate }: LabelListProps) {
   if (labels.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -58,9 +60,27 @@ export function LabelList({ labels, onRemove }: LabelListProps) {
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, whiteSpace: "pre-line" }}>{label.medidasCorte}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.modelo.backgroundColor, color: colors.modelo.textColor, fontWeight: 600 }}>{label.modelo}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.parteSup.backgroundColor, color: colors.parteSup.textColor }}>{label.parteSuperior}</td>
-                <td className={cellClass} style={{ minWidth: 60 }}></td>
-                <td className={cellClass} style={{ minWidth: 60 }}></td>
-                <td className={cellClass} style={{ minWidth: 60 }}></td>
+                <EditableCell
+                  labelId={label.id}
+                  field="cortador"
+                  value={(label as any).cortador || ""}
+                  bgColor={colors.row.backgroundColor}
+                  onUpdate={onUpdate}
+                />
+                <EditableCell
+                  labelId={label.id}
+                  field="overloque"
+                  value={(label as any).overloque || ""}
+                  bgColor={colors.row.backgroundColor}
+                  onUpdate={onUpdate}
+                />
+                <EditableCell
+                  labelId={label.id}
+                  field="costura"
+                  value={(label as any).costura || ""}
+                  bgColor={colors.row.backgroundColor}
+                  onUpdate={onUpdate}
+                />
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.cliente}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.saida.backgroundColor, color: colors.saida.textColor, fontWeight: 700 }}>
                   {label.dataSaida}
@@ -77,5 +97,37 @@ export function LabelList({ labels, onRemove }: LabelListProps) {
         </tbody>
       </table>
     </div>
+  );
+}
+
+function EditableCell({
+  labelId,
+  field,
+  value,
+  bgColor,
+  onUpdate,
+}: {
+  labelId: string;
+  field: string;
+  value: string;
+  bgColor: string;
+  onUpdate?: (id: string, field: string, value: string) => void;
+}) {
+  const [localVal, setLocalVal] = useState(value);
+  const cellClass = "px-2 py-1.5 border border-border text-xs text-center";
+
+  return (
+    <td className={cellClass} style={{ backgroundColor: bgColor, minWidth: 70 }}>
+      <input
+        type="text"
+        value={localVal}
+        onChange={(e) => {
+          setLocalVal(e.target.value);
+          onUpdate?.(labelId, field, e.target.value);
+        }}
+        className="w-full bg-transparent text-xs text-center outline-none border-none focus:ring-1 focus:ring-primary rounded px-1"
+        placeholder="—"
+      />
+    </td>
   );
 }
