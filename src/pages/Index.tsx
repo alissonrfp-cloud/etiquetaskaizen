@@ -8,6 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SkuInput } from "@/components/SkuInput";
+import { CurtainSearch } from "@/components/CurtainSearch";
 import { LabelPreview } from "@/components/LabelPreview";
 import { LabelList } from "@/components/LabelList";
 import { createLabel, createManualLabel, splitIntoLots, type ParsedLabel, type Categoria, parseSku } from "@/utils/skuParser";
@@ -21,7 +22,7 @@ import { useNavigate } from "react-router-dom";
 
 const CATEGORIAS: Categoria[] = ["marketplace", "full_shopee", "full_ml", "revenda", "drop", "estoque", "wilson"];
 
-const PARTES_SUPERIORES = ["Trilho Suiço", "Ilhós Redondo Cromado", "Wave"];
+const PARTES_SUPERIORES = ["Trilho Suiço", "Ilhós Redondo Cromado", "Wave", "Trilho Duplo"];
 
 const Index = () => {
   const [modoManual, setModoManual] = useState(false);
@@ -257,9 +258,10 @@ const Index = () => {
                   </div>
                 </>
               ) : (
-                <div className="md:col-span-3">
+                <div className="md:col-span-3 space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">SKU</label>
                   <SkuInput value={sku} onChange={setSku} />
+                  <CurtainSearch onSelect={setSku} />
                 </div>
               )}
               <div className="md:col-span-1">
