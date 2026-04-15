@@ -19,11 +19,15 @@ const SIZES = [
   { label: "2,60 x 1,80", code: "260X180" },
   { label: "3,00 x 2,50", code: "300X250" },
   { label: "3,00 x 2,70", code: "300X270" },
+  { label: "3,00 x 2,80", code: "300X280" },
   { label: "4,00 x 2,50", code: "400X250" },
   { label: "4,00 x 2,70", code: "400X270" },
+  { label: "4,00 x 2,80", code: "400X280" },
   { label: "5,00 x 2,50", code: "500X250" },
   { label: "5,00 x 2,70", code: "500X270" },
+  { label: "5,00 x 2,80", code: "500X280" },
   { label: "6,00 x 2,70", code: "600X270" },
+  { label: "6,00 x 2,80", code: "600X280" },
 ];
 
 function buildCatalog(): SearchResult[] {
@@ -32,9 +36,8 @@ function buildCatalog(): SearchResult[] {
     for (const cor of CORES_TECIDO) {
       for (const size of SIZES) {
         const sku = `${p.prefix}${size.code}${cor.toUpperCase()}`;
-        const duplaLabel = p.isDupla ? `${p.duplaType} + Flamê` : "";
         const name = p.isDupla
-          ? `Cortina ${p.duplaType}/${duplaLabel} ${cor} - ${p.parteSuperior} - ${size.label}`
+          ? `Cortina Dupla ${p.duplaType} + Flamê ${cor} - ${p.parteSuperior} - ${size.label}`
           : `Cortina ${p.modelo} ${cor} - ${p.parteSuperior} - ${size.label}`;
         results.push({ name, sku, prefix: p.prefix });
       }
