@@ -398,7 +398,9 @@ const Index = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <LabelList labels={labels} onRemove={handleRemove} />
+            <LabelList labels={labels} onRemove={handleRemove} onUpdate={(id, field, value) => {
+              setLabels(prev => prev.map(l => l.id === id ? { ...l, [field]: value } : l));
+            }} />
           </CardContent>
         </Card>
       </div>
