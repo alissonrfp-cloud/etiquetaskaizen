@@ -17,7 +17,8 @@ const PrintPage = () => {
   useEffect(() => {
     const stored = sessionStorage.getItem("printLabels");
     if (stored) {
-      setLabels(JSON.parse(stored));
+      const parsed: ParsedLabel[] = JSON.parse(stored);
+      setLabels(parsed.sort((a, b) => a.modelo.localeCompare(b.modelo, "pt-BR")));
     }
   }, []);
 
