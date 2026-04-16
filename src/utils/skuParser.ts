@@ -69,7 +69,7 @@ function calcMedidasCorte(larguraCm: number, alturaCm: number, isDupla: boolean,
 
   if (janelaAltura) {
     if (isDupla) {
-      return `1 parte de ${duplaType || "Blackout"} de ${janelaAltura}m cortada ao meio\n1 parte de Flamê de ${janelaAltura}m cortada ao meio`;
+      return `${duplaType || "Blackout"}: 1 parte de ${janelaAltura}m cortada ao meio\nFlamê: 1 parte de ${janelaAltura}m cortada ao meio`;
     }
     return `1 parte de ${janelaAltura}m cortada ao meio`;
   }
@@ -81,8 +81,10 @@ function calcMedidasCorte(larguraCm: number, alturaCm: number, isDupla: boolean,
 
   if (isDupla) {
     const alturaForro = alturaCm + 8;
+    const larguraFlame = metadeLargura + 4;
     const aForroStr = (alturaForro / 100).toFixed(2).replace(".", ",");
-    return `2 partes de ${duplaType || "Blackout"} de ${lStr}m x ${aForroStr}m\n2 partes de Flamê de ${lStr}m x ${aStr}m`;
+    const lFlameStr = (larguraFlame / 100).toFixed(2).replace(".", ",");
+    return `${duplaType || "Blackout"}: 2 partes de ${lStr}m x ${aForroStr}m\nFlamê: 2 partes de ${lFlameStr}m x ${aStr}m`;
   }
 
   return `2 partes de ${lStr}m x ${aStr}m`;
