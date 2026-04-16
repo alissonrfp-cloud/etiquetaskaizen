@@ -69,7 +69,7 @@ function calcMedidasCorte(larguraCm: number, alturaCm: number, isDupla: boolean,
 
   if (janelaAltura) {
     if (isDupla) {
-      return `1 parte de ${duplaType || "Blackout"} de ${janelaAltura}m cortada ao meio\n1 parte de Flamê de ${janelaAltura}m cortada ao meio`;
+      return `${duplaType || "Blackout"}: 1 parte de ${janelaAltura}m cortada ao meio\nFlamê: 1 parte de ${janelaAltura}m cortada ao meio`;
     }
     return `1 parte de ${janelaAltura}m cortada ao meio`;
   }
