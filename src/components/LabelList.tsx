@@ -11,6 +11,8 @@ interface LabelListProps {
 }
 
 export function LabelList({ labels, onRemove, onUpdate }: LabelListProps) {
+  const sortedLabels = [...labels].sort((a, b) => a.modelo.localeCompare(b.modelo, "pt-BR"));
+
   if (labels.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -46,7 +48,7 @@ export function LabelList({ labels, onRemove, onUpdate }: LabelListProps) {
           </tr>
         </thead>
         <tbody>
-          {labels.map((label, i) => {
+          {sortedLabels.map((label, i) => {
             const colors = getLabelColors(label.categoria, label.parteSuperior, label.isDupla, label.urgente);
             return (
               <tr key={label.id}>

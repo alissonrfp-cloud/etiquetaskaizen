@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { type ParsedLabel } from "@/utils/skuParser";
 import { getLabelColors } from "@/data/colorRules";
-import { ArrowLeft, FileText, Tag } from "lucide-react";
+import { ArrowLeft, FileText, Tag, Copy } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 type PrintMode = "list" | "labels";
 
@@ -11,13 +12,30 @@ const PrintPage = () => {
   const [labels, setLabels] = useState<ParsedLabel[]>([]);
   const [mode, setMode] = useState<PrintMode | null>(null);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     const stored = sessionStorage.getItem("printLabels");
     if (stored) {
-      setLabels(JSON.parse(stored));
+      const parsed: ParsedLabel[] = JSON.parse(stored);
+      setLabels(parsed.sort((a, b) => a.modelo.localeCompare(b.modelo, "pt-BR")));
     }
   }, []);
+
+  const handleCopyTable = () => {
+    const headers = ["Remessa", "Lote", "Subdivisão", "Quant.", "Corte", "Tamanho", "Tamanho do Corte", "Modelo", "Parte Superior", "Cortador", "Overloque", "Costura", "Cliente", "Retirada"];
+    const rows = labels.map((l) => [
+      l.remessa, l.lote, l.subdivisao || "—", String(l.quantidade), l.corte || "",
+      l.tamanho, l.medidasCorte, l.modelo, l.parteSuperior,
+      (l as any).cortador || "", (l as any).overloque || "", (l as any).costura || "",
+      l.cliente, l.dataSaida + (l.urgente ? " ⚠" : ""),
+    ]);
+    const totalRow = ["TOTAL", "", "", String(labels.reduce((s, l) => s + l.quantidade, 0)), ...Array(10).fill("")];
+    const tsv = [headers, ...rows, totalRow].map(r => r.join("\t")).join("\n");
+    navigator.clipboard.writeText(tsv).then(() => {
+      toast({ title: "Tabela copiada!", description: "Cole em qualquer planilha ou documento." });
+    });
+  };
 
   const handlePrint = (printMode: PrintMode) => {
     setMode(printMode);
@@ -59,7 +77,7 @@ const PrintPage = () => {
             {labels.length} etiqueta(s) — {totalQty} unidades no total
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Button
               onClick={() => handlePrint("list")}
               variant="outline"
@@ -78,6 +96,16 @@ const PrintPage = () => {
               <Tag className="h-8 w-8" />
               <span className="font-bold">Imprimir Etiquetas</span>
               <span className="text-xs text-muted-foreground">A4 Paisagem — Etiquetas 3cm, fonte grande</span>
+            </Button>
+
+            <Button
+              onClick={handleCopyTable}
+              variant="outline"
+              className="h-32 flex flex-col gap-2 text-lg"
+            >
+              <Copy className="h-8 w-8" />
+              <span className="font-bold">Copiar Tabela</span>
+              <span className="text-xs text-muted-foreground">Copia para a área de transferência</span>
             </Button>
           </div>
 
