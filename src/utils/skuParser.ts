@@ -81,8 +81,10 @@ function calcMedidasCorte(larguraCm: number, alturaCm: number, isDupla: boolean,
 
   if (isDupla) {
     const alturaForro = alturaCm + 8;
+    const larguraFlame = metadeLargura + 4;
     const aForroStr = (alturaForro / 100).toFixed(2).replace(".", ",");
-    return `2 partes de ${duplaType || "Blackout"} de ${lStr}m x ${aForroStr}m\n2 partes de Flamê de ${lStr}m x ${aStr}m`;
+    const lFlameStr = (larguraFlame / 100).toFixed(2).replace(".", ",");
+    return `${duplaType || "Blackout"}: 2 partes de ${lStr}m x ${aForroStr}m\nFlamê: 2 partes de ${lFlameStr}m x ${aStr}m`;
   }
 
   return `2 partes de ${lStr}m x ${aStr}m`;
