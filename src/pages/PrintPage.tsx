@@ -24,16 +24,56 @@ const PrintPage = () => {
 
   const handleCopyTable = () => {
     const headers = ["Remessa", "Lote", "Subdivisão", "Quant.", "Corte", "Tamanho", "Tamanho do Corte", "Modelo", "Parte Superior", "Cortador", "Overloque", "Costura", "Cliente", "Retirada"];
+    const thStyle = 'style="border:1px solid #000;padding:2px 4px;font-size:10px;font-weight:bold;text-align:center"';
+    
+    let html = '<table style="border-collapse:collapse"><thead><tr>';
+    headers.forEach(h => { html += `<th ${thStyle}>${h}</th>`; });
+    html += '</tr></thead><tbody>';
+
+    labels.forEach((l) => {
+      const colors = getLabelColors(l.categoria, l.parteSuperior, l.isDupla, l.urgente);
+      const cell = (val: string, bg: string, color: string, bold = false) =>
+        `<td style="border:1px solid #000;padding:2px 4px;font-size:10px;text-align:center;background-color:${bg};color:${color};${bold ? 'font-weight:700;' : ''}">${val}</td>`;
+      
+      html += '<tr>';
+      html += cell(l.remessa, colors.row.backgroundColor, colors.row.textColor);
+      html += cell(l.lote, colors.row.backgroundColor, colors.row.textColor, true);
+      html += cell(l.subdivisao || "—", colors.row.backgroundColor, colors.row.textColor, true);
+      html += cell(String(l.quantidade), colors.row.backgroundColor, colors.row.textColor, true);
+      html += cell(l.corte || "", colors.row.backgroundColor, colors.row.textColor);
+      html += cell(l.tamanho, colors.row.backgroundColor, colors.row.textColor);
+      html += cell(l.medidasCorte, colors.row.backgroundColor, colors.row.textColor);
+      html += cell(l.modelo, colors.modelo.backgroundColor, colors.modelo.textColor, true);
+      html += cell(l.parteSuperior, colors.parteSup.backgroundColor, colors.parteSup.textColor, true);
+      html += cell((l as any).cortador || "", colors.row.backgroundColor, colors.row.textColor);
+      html += cell((l as any).overloque || "", colors.row.backgroundColor, colors.row.textColor);
+      html += cell((l as any).costura || "", colors.row.backgroundColor, colors.row.textColor);
+      html += cell(l.cliente, colors.row.backgroundColor, colors.row.textColor);
+      html += cell(l.dataSaida + (l.urgente ? " ⚠" : ""), colors.saida.backgroundColor, colors.saida.textColor, true);
+      html += '</tr>';
+    });
+
+    const totalQty = labels.reduce((s, l) => s + l.quantidade, 0);
+    html += `<tr><td ${thStyle}>TOTAL</td><td ${thStyle}></td><td ${thStyle}></td><td ${thStyle}>${totalQty}</td>`;
+    for (let i = 0; i < 10; i++) html += `<td ${thStyle}></td>`;
+    html += '</tr></tbody></table>';
+
+    // Plain text fallback
     const rows = labels.map((l) => [
       l.remessa, l.lote, l.subdivisao || "—", String(l.quantidade), l.corte || "",
       l.tamanho, l.medidasCorte, l.modelo, l.parteSuperior,
       (l as any).cortador || "", (l as any).overloque || "", (l as any).costura || "",
       l.cliente, l.dataSaida + (l.urgente ? " ⚠" : ""),
     ]);
-    const totalRow = ["TOTAL", "", "", String(labels.reduce((s, l) => s + l.quantidade, 0)), ...Array(10).fill("")];
+    const totalRow = ["TOTAL", "", "", String(totalQty), ...Array(10).fill("")];
     const tsv = [headers, ...rows, totalRow].map(r => r.join("\t")).join("\n");
-    navigator.clipboard.writeText(tsv).then(() => {
-      toast({ title: "Tabela copiada!", description: "Cole em qualquer planilha ou documento." });
+
+    const blob = new Blob([html], { type: "text/html" });
+    const textBlob = new Blob([tsv], { type: "text/plain" });
+    navigator.clipboard.write([
+      new ClipboardItem({ "text/html": blob, "text/plain": textBlob }),
+    ]).then(() => {
+      toast({ title: "Tabela copiada com cores!", description: "Cole em qualquer planilha ou documento." });
     });
   };
 
