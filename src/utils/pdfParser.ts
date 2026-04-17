@@ -9,9 +9,9 @@ interface PickingItem {
 
 /** Known SKU prefixes sorted longest first */
 const KNOWN_PREFIXES = [
-  "CDGLBI", "CDGLMI", "CDGLBW", "CDGLMW",
-  "CBTI", "CBTS", "CBTW",
-  "CGLI", "CGLS", "CGLW",
+  "CDGLBI", "CDGLMI", "CDGLBW", "CDGLMW", "CDGLBS", "CDGLMS", "CDGLBD", "CDGLMD",
+  "CBTI", "CBTS", "CBTW", "CBTD",
+  "CGLI", "CGLS", "CGLW", "CGLD",
   "COXF",
 ].sort((a, b) => b.length - a.length);
 
