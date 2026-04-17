@@ -90,7 +90,7 @@ function calcMedidasCorte(larguraCm: number, alturaCm: number, isDupla: boolean,
   return `2 partes de ${lStr}m x ${aStr}m`;
 }
 
-export function parseSku(sku: string): Omit<ParsedLabel, "id" | "quantidade" | "remessa" | "lote" | "subdivisao" | "corte" | "dataSaida" | "categoria" | "urgente" | "cliente" | "obs"> | null {
+export function parseSku(sku: string, cliente?: string): Omit<ParsedLabel, "id" | "quantidade" | "remessa" | "lote" | "subdivisao" | "corte" | "dataSaida" | "categoria" | "urgente" | "cliente" | "obs"> | null {
   const upper = sku.toUpperCase().trim();
   const prefix = findPrefix(upper);
   if (!prefix) return null;
@@ -103,6 +103,13 @@ export function parseSku(sku: string): Omit<ParsedLabel, "id" | "quantidade" | "
     ? `Dupla ${prefix.duplaType} Flamê ${corTecido}`
     : `${prefix.modelo} ${corTecido}`;
 
+  // Wilson uses simplified "Ilhós" instead of "Ilhós Redondo Cromado"
+  const isWilson = cliente?.toLowerCase().includes("wilson");
+  let parteSuperior = prefix.parteSuperior;
+  if (isWilson && parteSuperior === "Ilhós Redondo Cromado") {
+    parteSuperior = "Ilhós";
+  }
+
   return {
     sku: upper,
     tamanho: formatSize(dims.largura, dims.altura),
@@ -112,7 +119,7 @@ export function parseSku(sku: string): Omit<ParsedLabel, "id" | "quantidade" | "
     modelo: modeloLabel,
     corTecido,
     parteInferior: "Bainha",
-    parteSuperior: prefix.parteSuperior,
+    parteSuperior,
     isDupla: prefix.isDupla,
     duplaType: prefix.duplaType,
   };
@@ -129,7 +136,7 @@ export function createLabel(
   cliente: string = "Kaizen Enxovais",
   obs: string = ""
 ): ParsedLabel | null {
-  const parsed = parseSku(sku);
+  const parsed = parseSku(sku, cliente);
   if (!parsed) return null;
 
   return {

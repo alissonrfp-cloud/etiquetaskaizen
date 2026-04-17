@@ -9,9 +9,9 @@ interface PickingItem {
 
 /** Known SKU prefixes sorted longest first */
 const KNOWN_PREFIXES = [
-  "CDGLBI", "CDGLMI", "CDGLBW", "CDGLMW",
-  "CBTI", "CBTS", "CBTW",
-  "CGLI", "CGLS", "CGLW",
+  "CDGLBI", "CDGLMI", "CDGLBW", "CDGLMW", "CDGLBS", "CDGLMS", "CDGLBD", "CDGLMD",
+  "CBTI", "CBTS", "CBTW", "CBTD",
+  "CGLI", "CGLS", "CGLW", "CGLD",
   "COXF",
 ].sort((a, b) => b.length - a.length);
 
@@ -62,9 +62,7 @@ export async function parsePickingListPdf(file: File): Promise<PickingItem[]> {
     // For each row, try to extract a SKU pattern using regex
     for (const row of sortedRows) {
       const line = row.text.trim();
-
-      // Must start with a numeric ID
-      if (!/^\d{4,}/.test(line)) continue;
+      if (!line) continue;
 
       // Find a known prefix in the line
       let foundPrefix = "";
@@ -87,9 +85,15 @@ export async function parsePickingListPdf(file: File): Promise<PickingItem[]> {
       const dimEnd = prefixIdx + foundPrefix.length + dimMatch[0].length;
       const baseSku = line.substring(prefixIdx, dimEnd).toUpperCase();
 
-      // Try to get color from the rest of the line (NOME field)
+      // Try to get color from immediately after dimensions (concatenated SKU like CBTS300X270BRANCO)
       const restOfLine = line.substring(dimEnd).toUpperCase();
-      const color = extractColorFromNome(restOfLine);
+      const colorMatch = restOfLine.match(/^([A-ZÇ]+)/);
+      let color: string | null = null;
+      if (colorMatch && KNOWN_COLORS.includes(colorMatch[1])) {
+        color = colorMatch[1];
+      } else {
+        color = extractColorFromNome(restOfLine);
+      }
 
       const sku = color ? baseSku + color : baseSku;
 
@@ -98,6 +102,11 @@ export async function parsePickingListPdf(file: File): Promise<PickingItem[]> {
       if (!qtyMatch) continue;
       const qty = parseInt(qtyMatch[1]);
       if (qty <= 0 || qty > 9999) continue;
+
+      // Avoid using a number that's part of the SKU itself as quantity
+      // If the last number is the dimension number, skip
+      const qtyStart = line.length - qtyMatch[1].length;
+      if (qtyStart < dimEnd + (color?.length ?? 0)) continue;
 
       items.push({ sku, quantidade: qty });
     }
