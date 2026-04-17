@@ -136,7 +136,7 @@ export function createLabel(
   cliente: string = "Kaizen Enxovais",
   obs: string = ""
 ): ParsedLabel | null {
-  const parsed = parseSku(sku);
+  const parsed = parseSku(sku, cliente);
   if (!parsed) return null;
 
   return {
