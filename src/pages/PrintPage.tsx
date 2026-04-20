@@ -196,27 +196,29 @@ function PrintListView({ labels }: { labels: ParsedLabel[] }) {
     <div>
       <table className="w-full border-collapse" style={{ fontSize: "10px", tableLayout: "fixed" }}>
         <colgroup>
-          <col style={{ width: "5%" }} />   {/* Remessa */}
-          <col style={{ width: "4%" }} />   {/* Lote */}
-          <col style={{ width: "5%" }} />   {/* Subdivisão */}
-          <col style={{ width: "4%" }} />   {/* Quant */}
-          <col style={{ width: "4%" }} />   {/* Corte */}
-          <col style={{ width: "7%" }} />   {/* Tamanho */}
-          <col style={{ width: "19%" }} />  {/* Tam. Corte */}
-          <col style={{ width: "13%" }} />  {/* Modelo */}
-          <col style={{ width: "8%" }} />   {/* P. Superior */}
-          <col style={{ width: "5.5%" }} /> {/* Cortador */}
-          <col style={{ width: "5.5%" }} /> {/* Overloque */}
-          <col style={{ width: "5.5%" }} /> {/* Costura */}
-          <col style={{ width: "7%" }} />   {/* Cliente */}
-          <col style={{ width: "7%" }} />   {/* Retirada */}
+          <col style={{ width: "5%" }} />
+          <col style={{ width: "4%" }} />
+          <col style={{ width: "4%" }} />
+          <col style={{ width: "6%" }} />
+          <col style={{ width: "5%" }} />
+          <col style={{ width: "4%" }} />
+          <col style={{ width: "7%" }} />
+          <col style={{ width: "18%" }} />
+          <col style={{ width: "13%" }} />
+          <col style={{ width: "8%" }} />
+          <col style={{ width: "5.5%" }} />
+          <col style={{ width: "5.5%" }} />
+          <col style={{ width: "5.5%" }} />
+          <col style={{ width: "7%" }} />
+          <col style={{ width: "7%" }} />
         </colgroup>
         <thead>
           <tr>
             <th className={thClass}>Remessa</th>
             <th className={thClass}>Lote</th>
-            <th className={thClass}>Subdivisão</th>
             <th className={thClass}>Quant.</th>
+            <th className={thClass}>Saída</th>
+            <th className={thClass}>Subdiv.</th>
             <th className={thClass}>Corte</th>
             <th className={thClass}>Tamanho</th>
             <th className={thClass}>Tamanho do Corte</th>
@@ -236,8 +238,9 @@ function PrintListView({ labels }: { labels: ParsedLabel[] }) {
               <tr key={label.id}>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.remessa}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.lote}</td>
-                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.subdivisao || "—"}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.quantidade}</td>
+                <td className={cellClass} style={{ backgroundColor: colors.saida.backgroundColor, color: colors.saida.textColor, fontWeight: 700 }}>{label.dataSaida}{label.urgente ? " ⚠" : ""}</td>
+                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.subdivisao || "1 de 1"}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.corte}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.tamanho}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, whiteSpace: "pre-line", textAlign: "left", paddingLeft: 4 }}>{label.medidasCorte}</td>
@@ -247,16 +250,15 @@ function PrintListView({ labels }: { labels: ParsedLabel[] }) {
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}></td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}></td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.cliente}</td>
-                <td className={cellClass} style={{ backgroundColor: colors.saida.backgroundColor, color: colors.saida.textColor, fontWeight: 700 }}>{label.dataSaida}{label.urgente ? " ⚠" : ""}</td>
+                <td className={cellClass} style={{ backgroundColor: colors.saida.backgroundColor, color: colors.saida.textColor, fontWeight: 700 }}>{label.dataSaida}</td>
               </tr>
             );
           })}
           <tr>
             <td className={cellClass} style={{ fontWeight: 700 }}>TOTAL</td>
             <td className={cellClass}></td>
-            <td className={cellClass}></td>
             <td className={cellClass} style={{ fontWeight: 700 }}>{totalQty}</td>
-            <td className={cellClass} colSpan={10}></td>
+            <td className={cellClass} colSpan={12}></td>
           </tr>
         </tbody>
       </table>
