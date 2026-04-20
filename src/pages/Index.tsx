@@ -398,9 +398,35 @@ const Index = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <LabelList labels={labels} onRemove={handleRemove} onUpdate={(id, field, value) => {
-              setLabels(prev => prev.map(l => l.id === id ? { ...l, [field]: value } : l));
-            }} />
+            <LabelList
+              labels={labels}
+              onRemove={handleRemove}
+              onUpdate={(id, field, value) => {
+                setLabels(prev => prev.map(l => l.id === id ? { ...l, [field]: value } : l));
+              }}
+              onToggleSubdivisao={(id) => {
+                setLabels(prev => {
+                  const target = prev.find(l => l.id === id);
+                  if (!target) return prev;
+                  const subMatch = target.subdivisao?.match(/^(\d+)\s*de\s*(\d+)$/i);
+                  const isSubdiv = subMatch ? parseInt(subMatch[2]) > 1 : false;
+
+                  if (isSubdiv) {
+                    const siblings = prev.filter(l =>
+                      l.sku === target.sku && l.remessa === target.remessa &&
+                      l.lote === target.lote && l.modelo === target.modelo &&
+                      l.tamanho === target.tamanho && /^\d+\s*de\s*\d+$/i.test(l.subdivisao || "")
+                    );
+                    const totalQty = siblings.reduce((s, l) => s + l.quantidade, 0);
+                    const merged = { ...target, quantidade: totalQty, subdivisao: "1 de 1", corte: "" };
+                    return [...prev.filter(l => !siblings.includes(l)), merged];
+                  } else {
+                    const lots = splitIntoLots(target);
+                    return [...prev.filter(l => l.id !== id), ...lots];
+                  }
+                });
+              }}
+            />
           </CardContent>
         </Card>
       </div>

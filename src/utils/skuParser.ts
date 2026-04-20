@@ -193,7 +193,7 @@ export function splitIntoLots(label: ParsedLabel): ParsedLabel[] {
   const total = label.quantidade;
   
   if (total <= maxLot) {
-    return [{ ...label, subdivisao: "", corte: "" }];
+    return [{ ...label, subdivisao: "1 de 1", corte: "" }];
   }
   
   const numLots = Math.ceil(total / maxLot);

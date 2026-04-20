@@ -1,5 +1,5 @@
 import type { ParsedLabel } from "@/utils/skuParser";
-import { getLabelColors, CATEGORIA_LABELS } from "@/data/colorRules";
+import { getLabelColors } from "@/data/colorRules";
 
 interface LabelPreviewProps {
   label: ParsedLabel;
@@ -16,8 +16,9 @@ export function LabelPreview({ label }: LabelPreviewProps) {
           <tr className="bg-muted">
             <th className={cellClass}>Remessa</th>
             <th className={cellClass}>Lote</th>
-            <th className={cellClass}>Subdivisão</th>
             <th className={cellClass}>Quant.</th>
+            <th className={cellClass}>Saída</th>
+            <th className={cellClass}>Subdiv.</th>
             <th className={cellClass}>Corte</th>
             <th className={cellClass}>Tamanho</th>
             <th className={cellClass}>Tamanho do Corte</th>
@@ -34,8 +35,11 @@ export function LabelPreview({ label }: LabelPreviewProps) {
           <tr>
             <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.remessa}</td>
             <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.lote}</td>
-            <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.subdivisao || "—"}</td>
             <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.quantidade}</td>
+            <td className={cellClass} style={{ backgroundColor: colors.saida.backgroundColor, color: colors.saida.textColor, fontWeight: 700 }}>
+              {label.dataSaida}{label.urgente ? " ⚠" : ""}
+            </td>
+            <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.subdivisao || "1 de 1"}</td>
             <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.corte || ""}</td>
             <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.tamanho}</td>
             <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, whiteSpace: "pre-line" }}>{label.medidasCorte}</td>
@@ -46,7 +50,7 @@ export function LabelPreview({ label }: LabelPreviewProps) {
             <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, minWidth: 60 }}></td>
             <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.cliente}</td>
             <td className={cellClass} style={{ backgroundColor: colors.saida.backgroundColor, color: colors.saida.textColor, fontWeight: 700 }}>
-              {label.dataSaida}{label.urgente ? " ⚠" : ""}
+              {label.dataSaida}
             </td>
           </tr>
         </tbody>

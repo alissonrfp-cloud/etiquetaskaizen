@@ -65,10 +65,10 @@ function buildLabelTable(labels: ParsedLabel[]): Table {
     children: [
       makeHeaderCell("Remessa", COL.remessa),
       makeHeaderCell("Lote", COL.lote),
-      makeHeaderCell("Subdivisão", COL.subdivisao),
       makeHeaderCell("Quant.", COL.quant),
-      makeHeaderCell("Corte", COL.corte),
       makeHeaderCell("Saída", COL.saida),
+      makeHeaderCell("Subdiv.", COL.subdivisao),
+      makeHeaderCell("Corte", COL.corte),
       makeHeaderCell("Tamanho", COL.tamanho),
       makeHeaderCell("Tamanho do Corte", COL.medidasCorte),
       makeHeaderCell("Modelo", COL.modelo),
@@ -89,39 +89,32 @@ function buildLabelTable(labels: ParsedLabel[]): Table {
       children: [
         makeCell(label.remessa, COL.remessa, bg),
         makeCell(label.lote, COL.lote, bg, true),
-        makeCell(label.subdivisao || "—", COL.subdivisao, bg, true),
         makeCell(String(label.quantidade), COL.quant, bg, true),
+        makeCell(label.dataSaida + (label.urgente ? " ⚠" : ""), COL.saida, colors.saida.backgroundColor, true, colors.saida.textColor),
+        makeCell(label.subdivisao || "1 de 1", COL.subdivisao, bg, true),
         makeCell(label.corte || "", COL.corte, bg),
-        makeCell(
-          label.dataSaida + (label.urgente ? " ⚠" : ""),
-          COL.saida,
-          colors.saida.backgroundColor,
-          label.urgente,
-          colors.saida.textColor
-        ),
         makeCell(label.tamanho, COL.tamanho, bg),
         makeCell(label.medidasCorte, COL.medidasCorte, bg),
         makeCell(label.modelo, COL.modelo, colors.modelo.backgroundColor, true, colors.modelo.textColor),
         makeCell(label.parteSuperior, COL.parteSup, colors.parteSup.backgroundColor, true, colors.parteSup.textColor),
-        makeCell("", COL.cortador, "#FFFFFF"),
-        makeCell("", COL.overloque, "#FFFFFF"),
-        makeCell("", COL.costura, "#FFFFFF"),
+        makeCell("", COL.cortador, bg),
+        makeCell("", COL.overloque, bg),
+        makeCell("", COL.costura, bg),
         makeCell(label.cliente, COL.cliente, bg),
         makeCell(label.dataSaida, COL.retirada, colors.saida.backgroundColor, true, colors.saida.textColor),
       ],
     });
   });
 
-  // Total row
   const totalQty = labels.reduce((sum, l) => sum + l.quantidade, 0);
   const totalRow = new TableRow({
     children: [
       makeCell("TOTAL", COL.remessa, "#FFFFFF", true),
       makeCell("", COL.lote, "#FFFFFF"),
-      makeCell("", COL.subdivisao, "#FFFFFF"),
       makeCell(String(totalQty), COL.quant, "#FFFFFF", true),
-      makeCell("0", COL.corte, "#FFFFFF"),
       makeCell("", COL.saida, "#FFFFFF"),
+      makeCell("", COL.subdivisao, "#FFFFFF"),
+      makeCell("", COL.corte, "#FFFFFF"),
       makeCell("", COL.tamanho, "#FFFFFF"),
       makeCell("", COL.medidasCorte, "#FFFFFF"),
       makeCell("", COL.modelo, "#FFFFFF"),

@@ -17,9 +17,15 @@ const VERMELHO_DUPLA: CellColors = { backgroundColor: "#FF0000", textColor: "#FF
 const VERMELHO_URGENTE: CellColors = { backgroundColor: "#FF0000", textColor: "#FFFFFF" };
 
 function getAcabamentoColor(parteSuperior: string): CellColors {
-  if (parteSuperior === "Trilho Suiço") return AZUL_TRILHO;
-  if (parteSuperior === "Ilhós Redondo Cromado") return ROSA_ILHOS;
+  if (parteSuperior === "Trilho Suiço" || parteSuperior === "Trilho Duplo") return AZUL_TRILHO;
+  if (parteSuperior === "Ilhós Redondo Cromado" || parteSuperior === "Ilhós") return ROSA_ILHOS;
   return WHITE;
+}
+
+// Wilson: trilho mantém cor da etiqueta (laranja); ilhós usa rosa
+function getWilsonAcabamentoColor(parteSuperior: string): CellColors {
+  if (parteSuperior === "Ilhós" || parteSuperior === "Ilhós Redondo Cromado") return ROSA_ILHOS;
+  return LARANJA_WILSON;
 }
 
 // Returns colors for each cell based on category + label properties
@@ -34,17 +40,14 @@ export function getLabelColors(
   parteSup: CellColors;
   saida: CellColors;
 } {
-  const defaultSaida = urgente ? VERMELHO_URGENTE : WHITE;
-
   switch (categoria) {
     case "marketplace": {
-      // Row color based on acabamento: trilho=azul, ilhós=rosa
       const base = getAcabamentoColor(parteSuperior);
       return {
         row: base,
         modelo: isDupla ? VERMELHO_DUPLA : base,
         parteSup: base,
-        saida: defaultSaida,
+        saida: urgente ? VERMELHO_URGENTE : base,
       };
     }
     case "full_shopee": {
@@ -53,7 +56,7 @@ export function getLabelColors(
         row: ROXO_SHOPEE,
         modelo: isDupla ? VERMELHO_DUPLA : ROXO_SHOPEE,
         parteSup: acabShopee.backgroundColor !== "#FFFFFF" ? acabShopee : ROXO_SHOPEE,
-        saida: defaultSaida,
+        saida: urgente ? VERMELHO_URGENTE : ROXO_SHOPEE,
       };
     }
     case "full_ml":
@@ -61,7 +64,7 @@ export function getLabelColors(
         row: AZUL_CLARO_ML,
         modelo: isDupla ? VERMELHO_DUPLA : AZUL_CLARO_ML,
         parteSup: AZUL_CLARO_ML,
-        saida: defaultSaida,
+        saida: urgente ? VERMELHO_URGENTE : AZUL_CLARO_ML,
       };
     case "revenda": {
       const acabamento = getAcabamentoColor(parteSuperior);
@@ -69,7 +72,7 @@ export function getLabelColors(
         row: AMARELO_REVENDA,
         modelo: AMARELO_REVENDA,
         parteSup: acabamento.backgroundColor !== "#FFFFFF" ? acabamento : AMARELO_REVENDA,
-        saida: defaultSaida,
+        saida: urgente ? VERMELHO_URGENTE : AMARELO_REVENDA,
       };
     }
     case "drop": {
@@ -78,7 +81,7 @@ export function getLabelColors(
         row: AMARELO_REVENDA,
         modelo: AMARELO_REVENDA,
         parteSup: acabamentoDrop.backgroundColor !== "#FFFFFF" ? acabamentoDrop : AMARELO_REVENDA,
-        saida: defaultSaida,
+        saida: urgente ? VERMELHO_URGENTE : AMARELO_REVENDA,
       };
     }
     case "estoque": {
@@ -87,16 +90,17 @@ export function getLabelColors(
         row: CINZA_ESTOQUE,
         modelo: CINZA_ESTOQUE,
         parteSup: acabamento.backgroundColor !== "#FFFFFF" ? acabamento : CINZA_ESTOQUE,
-        saida: defaultSaida,
+        saida: urgente ? VERMELHO_URGENTE : CINZA_ESTOQUE,
       };
     }
     case "wilson": {
-      const acabamentoWilson = getAcabamentoColor(parteSuperior);
+      // Wilson: trilho mantém laranja, só ilhós muda cor (rosa)
+      const acabamentoWilson = getWilsonAcabamentoColor(parteSuperior);
       return {
         row: LARANJA_WILSON,
         modelo: LARANJA_WILSON,
-        parteSup: acabamentoWilson.backgroundColor !== "#FFFFFF" ? acabamentoWilson : LARANJA_WILSON,
-        saida: defaultSaida,
+        parteSup: acabamentoWilson,
+        saida: urgente ? VERMELHO_URGENTE : LARANJA_WILSON,
       };
     }
   }
