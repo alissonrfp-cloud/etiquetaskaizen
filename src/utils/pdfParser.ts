@@ -42,24 +42,49 @@ export async function parsePickingListPdf(file: File): Promise<PickingItem[]> {
     const page = await pdf.getPage(pageNum);
     const textContent = await page.getTextContent();
 
-    // Group text items by Y position (same row)
-    const rows = new Map<number, { x: number; text: string }[]>();
+    // Group text items by Y position with tolerance (PDFs sometimes shift baselines slightly)
+    const Y_TOLERANCE = 3;
+    const rawItems: { x: number; y: number; text: string }[] = [];
     for (const item of textContent.items) {
       if (!("str" in item) || !item.str.trim()) continue;
-      const y = Math.round(item.transform[5]);
-      if (!rows.has(y)) rows.set(y, []);
-      rows.get(y)!.push({ x: item.transform[4], text: item.str });
+      rawItems.push({ x: item.transform[4], y: item.transform[5], text: item.str });
     }
+    // Sort by Y descending then group with tolerance
+    rawItems.sort((a, b) => b.y - a.y);
+    const groups: { y: number; items: { x: number; text: string }[] }[] = [];
+    for (const it of rawItems) {
+      const last = groups[groups.length - 1];
+      if (last && Math.abs(last.y - it.y) <= Y_TOLERANCE) {
+        last.items.push({ x: it.x, text: it.text });
+      } else {
+        groups.push({ y: it.y, items: [{ x: it.x, text: it.text }] });
+      }
+    }
+    let sortedRows = groups.map((g) => ({
+      y: g.y,
+      text: g.items.sort((a, b) => a.x - b.x).map((c) => c.text).join(" "),
+    }));
 
-    // Sort rows top to bottom, columns left to right
-    const sortedRows = [...rows.entries()]
-      .sort(([a], [b]) => b - a)
-      .map(([y, cols]) => ({
-        y,
-        text: cols.sort((a, b) => a.x - b.x).map((c) => c.text).join(" "),
-      }));
+    // Fallback: if a row has a SKU but no trailing number, merge with next row
+    // (sometimes the quantity is rendered on a slightly different baseline)
+    const merged: { y: number; text: string }[] = [];
+    for (let i = 0; i < sortedRows.length; i++) {
+      const cur = sortedRows[i];
+      const next = sortedRows[i + 1];
+      const hasPrefix = KNOWN_PREFIXES.some((p) => cur.text.toUpperCase().includes(p));
+      const endsWithNumber = /\d+\s*$/.test(cur.text.trim());
+      const nextIsLoneNumber = next && /^\s*\d+\s*$/.test(next.text.trim());
+      if (hasPrefix && !endsWithNumber && nextIsLoneNumber) {
+        merged.push({ y: cur.y, text: cur.text + " " + next.text });
+        i++; // skip next
+      } else {
+        merged.push(cur);
+      }
+    }
+    sortedRows = merged;
 
     // For each row, try to extract a SKU pattern using regex
+    const seen = new Set<string>();
     for (const row of sortedRows) {
       const line = row.text.trim();
       if (!line) continue;
