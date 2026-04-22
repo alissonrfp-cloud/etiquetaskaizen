@@ -15,10 +15,18 @@ const PrintPage = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const stored = sessionStorage.getItem("printLabels");
-    if (stored) {
-      const parsed: ParsedLabel[] = JSON.parse(stored);
-      setLabels(parsed.sort((a, b) => a.modelo.localeCompare(b.modelo, "pt-BR")));
+    let raw = sessionStorage.getItem("printLabels");
+    if (!raw) {
+      // Fallback: read from localStorage if user reloaded /imprimir directly
+      raw = localStorage.getItem("kaizen-labels");
+    }
+    if (raw) {
+      try {
+        const parsed: ParsedLabel[] = JSON.parse(raw);
+        setLabels(parsed.sort((a, b) => a.modelo.localeCompare(b.modelo, "pt-BR")));
+      } catch {
+        // ignore parse errors
+      }
     }
   }, []);
 
