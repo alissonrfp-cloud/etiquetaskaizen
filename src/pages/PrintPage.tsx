@@ -198,39 +198,23 @@ const PrintPage = () => {
   );
 };
 
-function PrintListView({ labels }: { labels: ParsedLabel[] }) {
+function PrintListView({ labels, showSaidaInicio }: { labels: ParsedLabel[]; showSaidaInicio: boolean }) {
   const thClass = "px-1 py-1 border border-black text-[10px] text-center font-bold";
   const cellClass = "px-1 py-1 border border-black text-[10px] text-center";
   const totalQty = labels.reduce((sum, l) => sum + l.quantidade, 0);
+  const colCount = showSaidaInicio ? 15 : 14;
 
   return (
     <div>
       <table className="w-full border-collapse" style={{ fontSize: "10px", tableLayout: "fixed" }}>
-        <colgroup>
-          <col style={{ width: "5%" }} />
-          <col style={{ width: "4%" }} />
-          <col style={{ width: "4%" }} />
-          <col style={{ width: "6%" }} />
-          <col style={{ width: "5%" }} />
-          <col style={{ width: "4%" }} />
-          <col style={{ width: "7%" }} />
-          <col style={{ width: "18%" }} />
-          <col style={{ width: "13%" }} />
-          <col style={{ width: "8%" }} />
-          <col style={{ width: "5.5%" }} />
-          <col style={{ width: "5.5%" }} />
-          <col style={{ width: "5.5%" }} />
-          <col style={{ width: "7%" }} />
-          <col style={{ width: "7%" }} />
-        </colgroup>
         <thead>
           <tr>
             <th className={thClass}>Remessa</th>
             <th className={thClass}>Lote</th>
             <th className={thClass}>Quant.</th>
-            <th className={thClass}>Saída</th>
             <th className={thClass}>Subdiv.</th>
             <th className={thClass}>Corte</th>
+            {showSaidaInicio && <th className={thClass}>Saída</th>}
             <th className={thClass}>Tamanho</th>
             <th className={thClass}>Tamanho do Corte</th>
             <th className={thClass}>Modelo</th>
@@ -250,9 +234,11 @@ function PrintListView({ labels }: { labels: ParsedLabel[] }) {
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.remessa}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.lote}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.quantidade}</td>
-                <td className={cellClass} style={{ backgroundColor: colors.saida.backgroundColor, color: colors.saida.textColor, fontWeight: 700 }}>{label.dataSaida}{label.urgente ? " ⚠" : ""}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.subdivisao || "1 de 1"}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.corte}</td>
+                {showSaidaInicio && (
+                  <td className={cellClass} style={{ backgroundColor: colors.saida.backgroundColor, color: colors.saida.textColor, fontWeight: 700 }}>{label.dataSaida}{label.urgente ? " ⚠" : ""}</td>
+                )}
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.tamanho}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, whiteSpace: "pre-line", textAlign: "left", paddingLeft: 4 }}>{label.medidasCorte}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.modelo.backgroundColor, color: colors.modelo.textColor, fontWeight: 600 }}>{label.modelo}</td>
@@ -269,7 +255,7 @@ function PrintListView({ labels }: { labels: ParsedLabel[] }) {
             <td className={cellClass} style={{ fontWeight: 700 }}>TOTAL</td>
             <td className={cellClass}></td>
             <td className={cellClass} style={{ fontWeight: 700 }}>{totalQty}</td>
-            <td className={cellClass} colSpan={12}></td>
+            <td className={cellClass} colSpan={colCount - 3}></td>
           </tr>
         </tbody>
       </table>
