@@ -13,6 +13,7 @@ interface LabelListProps {
 
 export function LabelList({ labels, onRemove, onUpdate, onToggleSubdivisao }: LabelListProps) {
   const sortedLabels = [...labels].sort((a, b) => a.modelo.localeCompare(b.modelo, "pt-BR"));
+  const showSaidaInicio = labels.some((l) => l.categoria === "wilson");
 
   if (labels.length === 0) {
     return (
