@@ -123,12 +123,16 @@ function EditableCell({
   field,
   value,
   bgColor,
+  textColor,
+  bold,
   onUpdate,
 }: {
   labelId: string;
   field: string;
   value: string;
   bgColor: string;
+  textColor?: string;
+  bold?: boolean;
   onUpdate?: (id: string, field: string, value: string) => void;
 }) {
   const [localVal, setLocalVal] = useState(value);
@@ -144,6 +148,7 @@ function EditableCell({
           onUpdate?.(labelId, field, e.target.value);
         }}
         className="w-full bg-transparent text-xs text-center outline-none border-none focus:ring-1 focus:ring-primary rounded px-1"
+        style={{ color: textColor, fontWeight: bold ? 700 : undefined }}
         placeholder="—"
       />
     </td>
