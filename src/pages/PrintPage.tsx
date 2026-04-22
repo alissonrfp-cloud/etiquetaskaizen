@@ -22,8 +22,15 @@ const PrintPage = () => {
     }
   }, []);
 
+  const showSaidaInicio = labels.some((l) => l.categoria === "wilson");
+
   const handleCopyTable = () => {
-    const headers = ["Remessa", "Lote", "Quant.", "Saída", "Subdiv.", "Corte", "Tamanho", "Tamanho do Corte", "Modelo", "Parte Superior", "Cortador", "Overloque", "Costura", "Cliente", "Retirada"];
+    const headers = [
+      "Remessa", "Lote", "Quant.",
+      ...(showSaidaInicio ? ["Saída"] : []),
+      "Subdiv.", "Corte", "Tamanho", "Tamanho do Corte", "Modelo", "Parte Superior",
+      "Cortador", "Overloque", "Costura", "Cliente", "Retirada",
+    ];
     const thStyle = 'style="border:1px solid #000;padding:2px 4px;font-size:10px;font-weight:bold;text-align:center"';
     
     let html = '<table style="border-collapse:collapse"><thead><tr>';
@@ -39,7 +46,9 @@ const PrintPage = () => {
       html += cell(l.remessa, colors.row.backgroundColor, colors.row.textColor);
       html += cell(l.lote, colors.row.backgroundColor, colors.row.textColor, true);
       html += cell(String(l.quantidade), colors.row.backgroundColor, colors.row.textColor, true);
-      html += cell(l.dataSaida + (l.urgente ? " ⚠" : ""), colors.saida.backgroundColor, colors.saida.textColor, true);
+      if (showSaidaInicio) {
+        html += cell(l.dataSaida + (l.urgente ? " ⚠" : ""), colors.saida.backgroundColor, colors.saida.textColor, true);
+      }
       html += cell(l.subdivisao || "1 de 1", colors.row.backgroundColor, colors.row.textColor, true);
       html += cell(l.corte || "", colors.row.backgroundColor, colors.row.textColor);
       html += cell(l.tamanho, colors.row.backgroundColor, colors.row.textColor);
@@ -55,18 +64,20 @@ const PrintPage = () => {
     });
 
     const totalQty = labels.reduce((s, l) => s + l.quantidade, 0);
+    const emptyCols = headers.length - 3;
     html += `<tr><td ${thStyle}>TOTAL</td><td ${thStyle}></td><td ${thStyle}>${totalQty}</td>`;
-    for (let i = 0; i < 12; i++) html += `<td ${thStyle}></td>`;
+    for (let i = 0; i < emptyCols; i++) html += `<td ${thStyle}></td>`;
     html += '</tr></tbody></table>';
 
     const rows = labels.map((l) => [
-      l.remessa, l.lote, String(l.quantidade), l.dataSaida + (l.urgente ? " ⚠" : ""),
+      l.remessa, l.lote, String(l.quantidade),
+      ...(showSaidaInicio ? [l.dataSaida + (l.urgente ? " ⚠" : "")] : []),
       l.subdivisao || "1 de 1", l.corte || "",
       l.tamanho, l.medidasCorte, l.modelo, l.parteSuperior,
       (l as any).cortador || "", (l as any).overloque || "", (l as any).costura || "",
       l.cliente, l.dataSaida,
     ]);
-    const totalRow = ["TOTAL", "", String(totalQty), ...Array(12).fill("")];
+    const totalRow = ["TOTAL", "", String(totalQty), ...Array(emptyCols).fill("")];
     const tsv = [headers, ...rows, totalRow].map(r => r.join("\t")).join("\n");
 
     const blob = new Blob([html], { type: "text/html" });
@@ -153,7 +164,7 @@ const PrintPage = () => {
           {/* Preview */}
           <div className="border rounded-lg p-4 overflow-x-auto">
             <h2 className="text-sm font-semibold mb-3">Pré-visualização:</h2>
-            <PrintListView labels={labels} />
+            <PrintListView labels={labels} showSaidaInicio={showSaidaInicio} />
           </div>
         </div>
       </div>
@@ -161,9 +172,9 @@ const PrintPage = () => {
       {/* Print content */}
       <div className="hidden print:block">
         {mode === "list" ? (
-          <PrintListView labels={labels} />
+          <PrintListView labels={labels} showSaidaInicio={showSaidaInicio} />
         ) : (
-          <PrintLabelsView labels={labels} />
+          <PrintLabelsView labels={labels} showSaidaInicio={showSaidaInicio} />
         )}
       </div>
 
@@ -266,7 +277,7 @@ function PrintListView({ labels }: { labels: ParsedLabel[] }) {
   );
 }
 
-function PrintLabelsView({ labels }: { labels: ParsedLabel[] }) {
+function PrintLabelsView({ labels, showSaidaInicio }: { labels: ParsedLabel[]; showSaidaInicio: boolean }) {
   return (
     <div>
       {labels.map((label) => {
@@ -306,10 +317,12 @@ function PrintLabelsView({ labels }: { labels: ParsedLabel[] }) {
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Qtd</div>
               <div style={{ fontSize: "18px" }}>{label.quantidade}</div>
             </div>
-            <div style={cellStyle(colors.saida.backgroundColor, colors.saida.textColor, { width: "6%", minWidth: 55 })}>
-              <div style={{ fontSize: "9px", fontWeight: 400 }}>Saída</div>
-              <div style={{ fontWeight: 900 }}>{label.dataSaida}{label.urgente ? " ⚠" : ""}</div>
-            </div>
+            {showSaidaInicio && (
+              <div style={cellStyle(colors.saida.backgroundColor, colors.saida.textColor, { width: "6%", minWidth: 55 })}>
+                <div style={{ fontSize: "9px", fontWeight: 400 }}>Saída</div>
+                <div style={{ fontWeight: 900 }}>{label.dataSaida}{label.urgente ? " ⚠" : ""}</div>
+              </div>
+            )}
             <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { width: "4%", minWidth: 35 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Subdiv.</div>
               <div style={{ fontSize: "11px" }}>{label.subdivisao || "1 de 1"}</div>
