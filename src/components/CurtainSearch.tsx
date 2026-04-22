@@ -17,6 +17,7 @@ const SIZES = [
   { label: "2,20 x 1,30", code: "220X130" },
   { label: "2,60 x 1,30", code: "260X130" },
   { label: "2,60 x 1,80", code: "260X180" },
+  { label: "2,00 x 2,50", code: "200X250" },
   { label: "3,00 x 2,50", code: "300X250" },
   { label: "3,00 x 2,70", code: "300X270" },
   { label: "3,00 x 2,80", code: "300X280" },
