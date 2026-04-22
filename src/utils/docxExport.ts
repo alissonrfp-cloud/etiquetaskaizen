@@ -67,9 +67,9 @@ function buildLabelTable(labels: ParsedLabel[]): Table {
     makeHeaderCell("Remessa", COL.remessa),
     makeHeaderCell("Lote", COL.lote),
     makeHeaderCell("Quant.", COL.quant),
-    ...(showSaidaInicio ? [makeHeaderCell("Saída", COL.saida)] : []),
     makeHeaderCell("Subdiv.", COL.subdivisao),
     makeHeaderCell("Corte", COL.corte),
+    ...(showSaidaInicio ? [makeHeaderCell("Saída", COL.saida)] : []),
     makeHeaderCell("Tamanho", COL.tamanho),
     makeHeaderCell("Tamanho do Corte", COL.medidasCorte),
     makeHeaderCell("Modelo", COL.modelo),
@@ -91,11 +91,11 @@ function buildLabelTable(labels: ParsedLabel[]): Table {
         makeCell(label.remessa, COL.remessa, bg),
         makeCell(label.lote, COL.lote, bg, true),
         makeCell(String(label.quantidade), COL.quant, bg, true),
+        makeCell(label.subdivisao || "1 de 1", COL.subdivisao, bg, true),
+        makeCell(label.corte || "", COL.corte, bg),
         ...(showSaidaInicio
           ? [makeCell(label.dataSaida + (label.urgente ? " ⚠" : ""), COL.saida, colors.saida.backgroundColor, true, colors.saida.textColor)]
           : []),
-        makeCell(label.subdivisao || "1 de 1", COL.subdivisao, bg, true),
-        makeCell(label.corte || "", COL.corte, bg),
         makeCell(label.tamanho, COL.tamanho, bg),
         makeCell(label.medidasCorte, COL.medidasCorte, bg),
         makeCell(label.modelo, COL.modelo, colors.modelo.backgroundColor, true, colors.modelo.textColor),
@@ -114,9 +114,9 @@ function buildLabelTable(labels: ParsedLabel[]): Table {
     makeCell("TOTAL", COL.remessa, "#FFFFFF", true),
     makeCell("", COL.lote, "#FFFFFF"),
     makeCell(String(totalQty), COL.quant, "#FFFFFF", true),
-    ...(showSaidaInicio ? [makeCell("", COL.saida, "#FFFFFF")] : []),
     makeCell("", COL.subdivisao, "#FFFFFF"),
     makeCell("", COL.corte, "#FFFFFF"),
+    ...(showSaidaInicio ? [makeCell("", COL.saida, "#FFFFFF")] : []),
     makeCell("", COL.tamanho, "#FFFFFF"),
     makeCell("", COL.medidasCorte, "#FFFFFF"),
     makeCell("", COL.modelo, "#FFFFFF"),
@@ -130,9 +130,9 @@ function buildLabelTable(labels: ParsedLabel[]): Table {
   const totalRow = new TableRow({ children: totalCells });
 
   const widths = [
-    COL.remessa, COL.lote, COL.quant,
+    COL.remessa, COL.lote, COL.quant, COL.subdivisao, COL.corte,
     ...(showSaidaInicio ? [COL.saida] : []),
-    COL.subdivisao, COL.corte, COL.tamanho, COL.medidasCorte, COL.modelo,
+    COL.tamanho, COL.medidasCorte, COL.modelo,
     COL.parteSup, COL.cortador, COL.overloque, COL.costura, COL.cliente, COL.retirada,
   ];
   const totalW = widths.reduce((a, b) => a + b, 0);

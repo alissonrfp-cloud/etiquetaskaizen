@@ -303,12 +303,6 @@ function PrintLabelsView({ labels, showSaidaInicio }: { labels: ParsedLabel[]; s
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Qtd</div>
               <div style={{ fontSize: "18px" }}>{label.quantidade}</div>
             </div>
-            {showSaidaInicio && (
-              <div style={cellStyle(colors.saida.backgroundColor, colors.saida.textColor, { width: "6%", minWidth: 55 })}>
-                <div style={{ fontSize: "9px", fontWeight: 400 }}>Saída</div>
-                <div style={{ fontWeight: 900 }}>{label.dataSaida}{label.urgente ? " ⚠" : ""}</div>
-              </div>
-            )}
             <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { width: "4%", minWidth: 35 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Subdiv.</div>
               <div style={{ fontSize: "11px" }}>{label.subdivisao || "1 de 1"}</div>
@@ -317,6 +311,12 @@ function PrintLabelsView({ labels, showSaidaInicio }: { labels: ParsedLabel[]; s
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Corte</div>
               <div>{label.corte || ""}</div>
             </div>
+            {showSaidaInicio && (
+              <div style={cellStyle(colors.saida.backgroundColor, colors.saida.textColor, { width: "6%", minWidth: 55 })}>
+                <div style={{ fontSize: "9px", fontWeight: 400 }}>Saída</div>
+                <div style={{ fontWeight: 900 }}>{label.dataSaida}{label.urgente ? " ⚠" : ""}</div>
+              </div>
+            )}
             <div style={cellStyle(colors.row.backgroundColor, colors.row.textColor, { width: "7%", minWidth: 60 })}>
               <div style={{ fontSize: "9px", fontWeight: 400 }}>Tamanho</div>
               <div style={{ fontSize: "12px" }}>{label.tamanho}</div>
