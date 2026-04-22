@@ -69,9 +69,15 @@ export function LabelList({ labels, onRemove, onUpdate, onToggleSubdivisao }: La
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.subdivisao || "1 de 1"}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.corte || ""}</td>
                 {showSaidaInicio && (
-                  <td className={cellClass} style={{ backgroundColor: colors.saida.backgroundColor, color: colors.saida.textColor, fontWeight: 700 }}>
-                    {label.dataSaida}{label.urgente ? " ⚠" : ""}
-                  </td>
+                  <EditableCell
+                    labelId={label.id}
+                    field="saidaInicio"
+                    value={(label as any).saidaInicio || ""}
+                    bgColor={colors.saida.backgroundColor}
+                    textColor={colors.saida.textColor}
+                    bold
+                    onUpdate={onUpdate}
+                  />
                 )}
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.tamanho}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, whiteSpace: "pre-line" }}>{label.medidasCorte}</td>
