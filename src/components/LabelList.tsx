@@ -40,9 +40,9 @@ export function LabelList({ labels, onRemove, onUpdate, onToggleSubdivisao }: La
             <th className={cellClass}>Remessa</th>
             <th className={cellClass}>Lote</th>
             <th className={cellClass}>Quant.</th>
-            {showSaidaInicio && <th className={cellClass}>Saída</th>}
             <th className={cellClass}>Subdiv.</th>
             <th className={cellClass}>Corte</th>
+            {showSaidaInicio && <th className={cellClass}>Saída</th>}
             <th className={cellClass}>Tamanho</th>
             <th className={cellClass}>Tamanho do Corte</th>
             <th className={cellClass}>Modelo</th>
@@ -66,13 +66,13 @@ export function LabelList({ labels, onRemove, onUpdate, onToggleSubdivisao }: La
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.remessa}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.lote}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.quantidade}</td>
+                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.subdivisao || "1 de 1"}</td>
+                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.corte || ""}</td>
                 {showSaidaInicio && (
                   <td className={cellClass} style={{ backgroundColor: colors.saida.backgroundColor, color: colors.saida.textColor, fontWeight: 700 }}>
                     {label.dataSaida}{label.urgente ? " ⚠" : ""}
                   </td>
                 )}
-                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.subdivisao || "1 de 1"}</td>
-                <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.corte || ""}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.tamanho}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, whiteSpace: "pre-line" }}>{label.medidasCorte}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.modelo.backgroundColor, color: colors.modelo.textColor, fontWeight: 600 }}>{label.modelo}</td>
