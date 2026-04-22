@@ -164,7 +164,7 @@ const PrintPage = () => {
           {/* Preview */}
           <div className="border rounded-lg p-4 overflow-x-auto">
             <h2 className="text-sm font-semibold mb-3">Pré-visualização:</h2>
-            <PrintListView labels={labels} />
+            <PrintListView labels={labels} showSaidaInicio={showSaidaInicio} />
           </div>
         </div>
       </div>
@@ -172,9 +172,9 @@ const PrintPage = () => {
       {/* Print content */}
       <div className="hidden print:block">
         {mode === "list" ? (
-          <PrintListView labels={labels} />
+          <PrintListView labels={labels} showSaidaInicio={showSaidaInicio} />
         ) : (
-          <PrintLabelsView labels={labels} />
+          <PrintLabelsView labels={labels} showSaidaInicio={showSaidaInicio} />
         )}
       </div>
 
