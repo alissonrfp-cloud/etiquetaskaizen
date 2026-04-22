@@ -1,99 +1,30 @@
 
 
-## Plano: App Gerador de Etiquetas de Cortinas
+## Persistir etiquetas ao navegar entre páginas
 
-### O que sera construido
+Hoje as etiquetas vivem apenas no `useState` do `Index.tsx`. Quando você vai para `/imprimir` e volta, o componente é remontado e o estado é zerado. A solução é salvar a lista no `localStorage` do navegador, que persiste entre navegações, recarregamentos e até reinícios do navegador.
 
-Um app web onde o operador digita SKU + Quantidade, e a etiqueta e gerada automaticamente com cores nos campos, pronta para exportar como DOCX e imprimir.
+### O que será feito
 
-### Fluxo do usuario
+1. **Criar hook `useLocalStorage`** em `src/hooks/use-local-storage.ts`
+   - Wrapper de `useState` que lê/escreve automaticamente em `localStorage`.
+   - Tratamento de erros (JSON inválido, storage cheio).
 
-```text
-1. Digita o SKU (com autocomplete) + Quantidade
-2. App decodifica o SKU e preenche todos os campos automaticamente
-3. Preview da etiqueta aparece na tela com as cores aplicadas
-4. Pode adicionar mais SKUs (lista de etiquetas)
-5. Clica "Exportar DOCX" e baixa o arquivo formatado com cores
-```
+2. **Aplicar no `src/pages/Index.tsx`**
+   - Trocar `useState<ParsedLabel[]>([])` por `useLocalStorage<ParsedLabel[]>("kaizen-labels", [])`.
+   - Persistir também o estado de subdivisão ativa (`useLocalStorage("kaizen-subdivisao", true)`) para manter a preferência.
 
-### Estrutura do SKU (decodificacao automatica)
+3. **Botão "Limpar tudo"**
+   - Adicionar botão discreto ao lado do contador de etiquetas para limpar a lista quando o usuário quiser começar do zero (com confirmação via `AlertDialog`).
+   - Necessário porque, com persistência, a lista nunca mais some sozinha.
 
-O SKU segue o padrao: `PREFIXO + LARGURA + X + ALTURA + COR`
+4. **Migração segura na leitura do `PrintPage`**
+   - `PrintPage` continua recebendo as etiquetas via `location.state`, mas como fallback, lerá do `localStorage` caso o usuário recarregue a página de impressão diretamente.
 
-Exemplo: `CBTS300X270BRANCO`
-- **CBTS** = Black-out Basic com Trilho Suico (Parte Superior = Trilho Suico)
-- **300X270** = 3,00m x 2,70m
-- **BRANCO** = cor do tecido
+### Comportamento resultante
 
-Prefixos mapeados:
-| Prefixo | Modelo | Parte Superior |
-|---------|--------|---------------|
-| CBTI | Black-out Basic | Ilhos Redondo Cromado |
-| CBTS | Black-out Basic | Trilho Suico |
-| CBTW | Black-out Basic | Wave |
-| CGLI | Gaze de Linho | Ilhos Redondo Cromado |
-| CGLS | Gaze de Linho | Trilho Suico |
-| CGLW | Gaze de Linho | Wave |
-| CDGLBI | Dupla Flam c/ Blackout Premium | Ilhos Redondo Cromado |
-| CDGLMI | Dupla Flam c/ Microfibra Premium | Ilhos Redondo Cromado |
-| CDGLBW | Dupla Flam c/ Blackout Premium | Wave |
-| CDGLMW | Dupla Flam c/ Microfibra Premium | Wave |
-
-Calculos automaticos:
-- **Medidas do Corte**: largura/2 + 10cm x altura + 10cm (ex: 3,00m → 2 partes de 1,60m x 2,80m)
-- **Parte Inferior**: sempre "Bainha"
-
-### Cores padrao (editaveis depois)
-
-Campos que recebem cor de fundo na celula da etiqueta:
-- **Modelo** (tipo de tecido): Blackout = cinza claro, Gaze de Linho = bege claro, Dupla = rosa claro
-- **Parte Superior**: Trilho Suico = azul, Ilhos = verde, Wave = laranja
-- **Cor do tecido**: Branco = branco, Preto = cinza escuro, Chumbo = cinza medio, etc. (borda ou tag colorida)
-
-### Campos da etiqueta
-
-| Campo | Fonte | Colorido? |
-|-------|-------|-----------|
-| Remessa | Data de hoje (editavel) | Nao |
-| Quant. | Digitado pelo usuario | Nao |
-| Tamanho | Decodificado do SKU | Nao |
-| Medidas do Corte | Calculado | Nao |
-| Modelo | Decodificado (ex: "Blackout Branco") | Sim |
-| Parte Inferior | Sempre "Bainha" | Sim |
-| Parte Superior | Decodificado do prefixo | Sim |
-| Cliente | Padrao "Kaizen Enxovais" | Nao |
-| OBS | Campo livre | Nao |
-
-### Arquivos a criar/modificar
-
-1. **`src/data/skuDatabase.ts`** - Base de dados dos SKUs com todos os prefixos, cores e regras de decodificacao. Inclui os 800+ SKUs da planilha como lookup e a logica de parse do SKU.
-
-2. **`src/data/colorRules.ts`** - Mapeamento de cores para cada campo (Modelo, Parte Superior, Parte Inferior). Cores padrao iniciais faceis de ajustar.
-
-3. **`src/pages/Index.tsx`** - Pagina principal com:
-   - Campo de input SKU com autocomplete/busca
-   - Campo de quantidade
-   - Botao "Adicionar"
-   - Preview da etiqueta com cores
-   - Lista de etiquetas adicionadas
-   - Botao "Exportar DOCX"
-
-4. **`src/components/SkuInput.tsx`** - Componente de input com autocomplete que busca na base de SKUs
-
-5. **`src/components/LabelPreview.tsx`** - Preview visual da etiqueta com as cores aplicadas (tabela estilizada)
-
-6. **`src/components/LabelList.tsx`** - Lista de todas as etiquetas adicionadas, com opcao de remover
-
-7. **`src/utils/skuParser.ts`** - Logica de decodificacao do SKU (extrair prefixo, dimensoes, cor, calcular medidas de corte)
-
-8. **`src/utils/docxExport.ts`** - Geracao do arquivo DOCX usando a biblioteca `docx` (npm), com tabelas coloridas formatadas identicamente a planilha ETIQUETAS
-
-### Dependencias
-
-- `docx` (npm) - para gerar o .docx no browser
-- `file-saver` - para download do arquivo gerado
-
-### Resultado
-
-O operador digita apenas **SKU + Quantidade**, e o app preenche tudo automaticamente com cores. Exporta um DOCX formatado pronto para imprimir e colar nas trouxas.
+- Ir para `/imprimir` e voltar: lista intacta.
+- Recarregar a página (F5): lista intacta.
+- Fechar e reabrir o navegador: lista intacta.
+- Botão "Limpar tudo" para resetar manualmente quando terminar um lote de produção.
 
