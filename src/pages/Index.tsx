@@ -19,6 +19,18 @@ import { Plus, FileDown, Tag, CalendarIcon, AlertTriangle, PenLine, Barcode, Pri
 import { PdfUpload } from "@/components/PdfUpload";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const CATEGORIAS: Categoria[] = ["marketplace", "full_shopee", "full_ml", "revenda", "drop", "estoque", "wilson"];
 
@@ -35,8 +47,8 @@ const Index = () => {
   const [urgente, setUrgente] = useState(false);
   const [obs, setObs] = useState("");
   const [cliente, setCliente] = useState("Kaizen Enxovais");
-  const [labels, setLabels] = useState<ParsedLabel[]>([]);
-  const [autoLotes, setAutoLotes] = useState(true);
+  const [labels, setLabels] = useLocalStorage<ParsedLabel[]>("kaizen-labels", []);
+  const [autoLotes, setAutoLotes] = useLocalStorage<boolean>("kaizen-subdivisao", true);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -390,9 +402,30 @@ const Index = () => {
                     <Printer className="h-4 w-4 mr-1" />
                     Imprimir
                   </Button>
-                  <Button onClick={() => setLabels([])} variant="ghost" className="text-destructive">
-                    Limpar Tudo
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" className="text-destructive">
+                        Limpar Tudo
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Limpar todas as etiquetas?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação removerá todas as {labels.length} etiqueta(s) da lista. Não é possível desfazer.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => setLabels([])}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Limpar tudo
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </>
               )}
             </div>
