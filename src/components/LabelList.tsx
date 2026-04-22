@@ -69,9 +69,15 @@ export function LabelList({ labels, onRemove, onUpdate, onToggleSubdivisao }: La
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, fontWeight: 700 }}>{label.subdivisao || "1 de 1"}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.corte || ""}</td>
                 {showSaidaInicio && (
-                  <td className={cellClass} style={{ backgroundColor: colors.saida.backgroundColor, color: colors.saida.textColor, fontWeight: 700 }}>
-                    {label.dataSaida}{label.urgente ? " ⚠" : ""}
-                  </td>
+                  <EditableCell
+                    labelId={label.id}
+                    field="saidaInicio"
+                    value={(label as any).saidaInicio || ""}
+                    bgColor={colors.saida.backgroundColor}
+                    textColor={colors.saida.textColor}
+                    bold
+                    onUpdate={onUpdate}
+                  />
                 )}
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor }}>{label.tamanho}</td>
                 <td className={cellClass} style={{ backgroundColor: colors.row.backgroundColor, whiteSpace: "pre-line" }}>{label.medidasCorte}</td>
@@ -117,12 +123,16 @@ function EditableCell({
   field,
   value,
   bgColor,
+  textColor,
+  bold,
   onUpdate,
 }: {
   labelId: string;
   field: string;
   value: string;
   bgColor: string;
+  textColor?: string;
+  bold?: boolean;
   onUpdate?: (id: string, field: string, value: string) => void;
 }) {
   const [localVal, setLocalVal] = useState(value);
@@ -138,6 +148,7 @@ function EditableCell({
           onUpdate?.(labelId, field, e.target.value);
         }}
         className="w-full bg-transparent text-xs text-center outline-none border-none focus:ring-1 focus:ring-primary rounded px-1"
+        style={{ color: textColor, fontWeight: bold ? 700 : undefined }}
         placeholder="—"
       />
     </td>
