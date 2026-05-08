@@ -139,3 +139,100 @@ export async function parsePickingListPdf(file: File): Promise<PickingItem[]> {
 
   return items;
 }
+
+/**
+ * Extract all raw text from a PDF, preserving line order. Used as input for the AI fallback.
+ */
+export async function extractPdfRawText(file: File): Promise<string> {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const lines: string[] = [];
+
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+    const page = await pdf.getPage(pageNum);
+    const textContent = await page.getTextContent();
+    const Y_TOLERANCE = 3;
+    const raw: { x: number; y: number; text: string }[] = [];
+    for (const item of textContent.items) {
+      if (!("str" in item) || !item.str.trim()) continue;
+      raw.push({ x: item.transform[4], y: item.transform[5], text: item.str });
+    }
+    raw.sort((a, b) => b.y - a.y);
+    const groups: { y: number; items: { x: number; text: string }[] }[] = [];
+    for (const it of raw) {
+      const last = groups[groups.length - 1];
+      if (last && Math.abs(last.y - it.y) <= Y_TOLERANCE) {
+        last.items.push({ x: it.x, text: it.text });
+      } else {
+        groups.push({ y: it.y, items: [{ x: it.x, text: it.text }] });
+      }
+    }
+    for (const g of groups) {
+      lines.push(g.items.sort((a, b) => a.x - b.x).map((c) => c.text).join(" "));
+    }
+    lines.push(""); // blank line between pages
+  }
+  return lines.join("\n");
+}
+
+/**
+ * Encode a file as base64 (for sending the raw PDF to the AI fallback).
+ */
+export async function fileToBase64(file: File): Promise<string> {
+  const buf = await file.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
+/**
+ * Robust pipeline:
+ * 1. Try the local heuristic parser (fast, free).
+ * 2. If it returns 0 items (likely an unsupported layout), fall back to the AI edge function.
+ *    - Send extracted text if available; otherwise send the PDF for OCR.
+ *
+ * `forceAi` skips the heuristic and goes straight to the AI.
+ */
+export async function parsePickingListSmart(
+  file: File,
+  opts?: { forceAi?: boolean },
+): Promise<{ items: PickingItem[]; method: "heuristic" | "ai" | "ai-ocr" }> {
+  const { supabase } = await import("@/integrations/supabase/client");
+
+  if (!opts?.forceAi) {
+    const heuristic = await parsePickingListPdf(file);
+    if (heuristic.length > 0) {
+      return { items: heuristic, method: "heuristic" };
+    }
+  }
+
+  // AI fallback
+  const textContent = await extractPdfRawText(file).catch(() => "");
+  const hasText = textContent.replace(/\s+/g, "").length > 50;
+
+  const payload: { textContent?: string; pdfBase64?: string } = {};
+  if (hasText) {
+    payload.textContent = textContent;
+  } else {
+    payload.pdfBase64 = await fileToBase64(file);
+  }
+
+  const { data, error } = await supabase.functions.invoke("parse-picking-pdf", {
+    body: payload,
+  });
+
+  if (error) {
+    throw new Error(error.message || "Falha na extração via IA");
+  }
+  if (data?.error) {
+    throw new Error(data.error);
+  }
+
+  const items: PickingItem[] = data?.items ?? [];
+  return { items, method: hasText ? "ai" : "ai-ocr" };
+}
+
