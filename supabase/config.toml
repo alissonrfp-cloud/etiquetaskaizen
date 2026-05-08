@@ -1,1 +1,4 @@
 project_id = "zlzkgtnagwbqwyzvmohm"
+
+[functions.parse-picking-pdf]
+verify_jwt = false
