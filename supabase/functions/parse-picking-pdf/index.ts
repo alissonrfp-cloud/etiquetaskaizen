@@ -1,6 +1,6 @@
 // Edge function: extract SKU + quantidade pairs from a picking-list PDF using Lovable AI.
-// Accepts JSON: { textContent?: string, pdfBase64?: string }
-// Returns: { items: [{ sku: string, quantidade: number }] }
+// Aceita: { textContent?, pageImages?: string[] (data URLs), knownPrefixes: string[], knownColors: string[] }
+// Retorna: { items: [{ sku: string, quantidade: number }] }
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,33 +8,34 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const KNOWN_PREFIXES = [
+const FALLBACK_PREFIXES = [
   "CDGLBI", "CDGLMI", "CDGLBW", "CDGLMW", "CDGLBS", "CDGLMS", "CDGLBD", "CDGLMD",
   "CBTI", "CBTS", "CBTW", "CBTD",
   "CGLI", "CGLS", "CGLW", "CGLD",
   "COXF",
 ];
+const FALLBACK_COLORS = ["BRANCO", "BEGE", "CHUMBO", "CINZA", "PALHA", "PRETO", "TABACO"];
 
-const KNOWN_COLORS = ["BRANCO", "BEGE", "CHUMBO", "CINZA", "PALHA", "PRETO", "TABACO"];
-
-const SYSTEM_PROMPT = `Você é um extrator de dados de listas de picking (separação) de cortinas da Kaizen Enxovais.
+function buildSystemPrompt(prefixes: string[], colors: string[]): string {
+  return `Você é um extrator de dados de listas de picking (separação) de cortinas da Kaizen Enxovais.
 
 Sua tarefa: identificar TODOS os itens de cortina no documento e retornar pares { sku, quantidade }.
 
 Estrutura do SKU: PREFIXO + LARGURA + "X" + ALTURA + COR
-- Prefixos válidos: ${KNOWN_PREFIXES.join(", ")}
-- Cores válidas: ${KNOWN_COLORS.join(", ")}
+- Prefixos válidos: ${prefixes.join(", ")}
+- Cores válidas: ${colors.join(", ")}
 - Largura e altura são números inteiros em cm (ex: 300X270)
 - Exemplos válidos: CBTS300X270BRANCO, CDGLBI200X250CHUMBO, CGLW400X230BEGE
 
 Regras:
 1. SEMPRE retorne o SKU em MAIÚSCULAS, sem espaços nem hífens.
-2. A quantidade é o número de unidades a produzir/separar daquela linha.
+2. A quantidade é o número de unidades a produzir/separar (geralmente entre 1 e 999). NUNCA confunda com código de barras, valor, peso ou ID interno.
 3. IGNORE linhas de cabeçalho, totais, rodapés, observações ou produtos que NÃO tenham um prefixo válido.
 4. Se um item aparecer múltiplas vezes em linhas separadas, retorne uma entrada para cada linha (não some).
 5. Se a cor estiver descrita por extenso na descrição (ex: "Cortina Blackout Branco"), combine com o prefixo+dimensões para montar o SKU completo.
 6. NUNCA invente SKUs. Se não conseguir identificar prefixo+dimensão+cor com confiança, omita o item.
 7. Se houver código de barras ou referência interna no formato de um SKU válido, use-o.`;
+}
 
 const tools = [
   {
@@ -77,32 +78,38 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { textContent, pdfBase64 } = await req.json();
+    const body = await req.json();
+    const textContent: string | undefined = body.textContent;
+    const pageImages: string[] | undefined = body.pageImages;
+    // Compat: ainda aceita pdfBase64 como uma única página
+    const pdfBase64: string | undefined = body.pdfBase64;
+    const knownPrefixes: string[] = Array.isArray(body.knownPrefixes) && body.knownPrefixes.length > 0
+      ? body.knownPrefixes : FALLBACK_PREFIXES;
+    const knownColors: string[] = Array.isArray(body.knownColors) && body.knownColors.length > 0
+      ? body.knownColors : FALLBACK_COLORS;
 
-    if (!textContent && !pdfBase64) {
-      return new Response(JSON.stringify({ error: "textContent or pdfBase64 required" }), {
+    if (!textContent && !pageImages?.length && !pdfBase64) {
+      return new Response(JSON.stringify({ error: "textContent, pageImages or pdfBase64 required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Build user message: prefer text (cheaper, faster). Fallback to PDF inline for OCR.
     const userContent: any[] = [];
-
-    if (textContent && typeof textContent === "string" && textContent.trim().length > 0) {
+    if (textContent && textContent.trim().length > 0) {
       userContent.push({
         type: "text",
         text: `Texto extraído da lista de picking abaixo. Retorne todos os itens via a função extract_picking_items.\n\n---\n${textContent.slice(0, 60000)}`,
       });
-    } else if (pdfBase64) {
+    } else {
+      const images = pageImages?.length ? pageImages : (pdfBase64 ? [`data:application/pdf;base64,${pdfBase64}`] : []);
       userContent.push({
         type: "text",
-        text: "PDF da lista de picking abaixo (use OCR/visão). Retorne todos os itens via a função extract_picking_items.",
+        text: `Lista de picking abaixo (${images.length} página(s) — use OCR/visão). Processe TODAS as páginas e retorne os itens via extract_picking_items.`,
       });
-      userContent.push({
-        type: "image_url",
-        image_url: { url: `data:application/pdf;base64,${pdfBase64}` },
-      });
+      for (const url of images.slice(0, 20)) {
+        userContent.push({ type: "image_url", image_url: { url } });
+      }
     }
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -114,7 +121,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: buildSystemPrompt(knownPrefixes, knownColors) },
           { role: "user", content: userContent },
         ],
         tools,
@@ -162,11 +169,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Light server-side validation: keep only items with a known prefix.
+    // Validação leve: manter apenas itens com prefixo conhecido.
     const items = (parsed.items || []).filter((it) => {
       if (!it?.sku || typeof it.sku !== "string") return false;
       const upper = it.sku.toUpperCase();
-      return KNOWN_PREFIXES.some((p) => upper.startsWith(p));
+      return knownPrefixes.some((p) => upper.startsWith(p));
     }).map((it) => ({ sku: it.sku.toUpperCase(), quantidade: it.quantidade }));
 
     return new Response(JSON.stringify({ items }), {
