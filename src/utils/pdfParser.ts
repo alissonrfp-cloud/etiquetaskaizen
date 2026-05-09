@@ -23,11 +23,14 @@ export interface PickingParseResult {
 const KNOWN_PREFIXES = [...SKU_PREFIXES.map((p) => p.prefix)].sort((a, b) => b.length - a.length);
 const KNOWN_COLORS = CORES_TECIDO.map((c) => c.toUpperCase());
 
-/** Lê o PDF e devolve linhas de texto agrupadas por baseline Y. */
-async function extractRows(file: File): Promise<{ y: number; text: string; page: number }[]> {
+interface Token { x: number; text: string }
+interface Row { y: number; tokens: Token[]; text: string; page: number }
+
+/** Lê o PDF e devolve linhas com tokens posicionados (preserva X de cada palavra). */
+async function extractRows(file: File): Promise<Row[]> {
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const all: { y: number; text: string; page: number }[] = [];
+  const all: Row[] = [];
 
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
     const page = await pdf.getPage(pageNum);
@@ -41,7 +44,7 @@ async function extractRows(file: File): Promise<{ y: number; text: string; page:
     }
     raw.sort((a, b) => b.y - a.y);
 
-    const groups: { y: number; items: { x: number; text: string }[] }[] = [];
+    const groups: { y: number; items: Token[] }[] = [];
     for (const it of raw) {
       const last = groups[groups.length - 1];
       if (last && Math.abs(last.y - it.y) <= Y_TOLERANCE) {
@@ -51,69 +54,97 @@ async function extractRows(file: File): Promise<{ y: number; text: string; page:
       }
     }
     for (const g of groups) {
-      const text = g.items.sort((a, b) => a.x - b.x).map((c) => c.text).join(" ").replace(/\s+/g, " ").trim();
-      if (text) all.push({ y: g.y, text, page: pageNum });
+      const tokens = g.items.sort((a, b) => a.x - b.x);
+      const text = tokens.map((c) => c.text).join(" ").replace(/\s+/g, " ").trim();
+      if (text) all.push({ y: g.y, tokens, text, page: pageNum });
     }
   }
   return all;
 }
 
 /**
- * Modo TABELA — formato Picking List da Kaizen.
- * Layout fixo: ID(7 dígitos) | SKU | NOME | QTD(último inteiro).
- * Captura TODOS os SKUs (inclusive não reconhecidos) para a tela de revisão decidir.
+ * Modo TABELA — Picking List Kaizen.
+ *
+ * Estratégia: localiza a coluna **QTD / Quantidade** pelo cabeçalho e lê,
+ * em cada linha de dados, o token cujo X mais se aproxima dessa coluna.
+ * Robusto a qualquer ruído na descrição (dimensões "2,20m", códigos etc).
+ *
+ * Captura TODOS os SKUs — a tela de revisão decide o que entra.
  */
-function parseTableMode(rows: { text: string }[]): { items: PickingItem[]; expectedTotal?: number } {
+function parseTableMode(rows: Row[]): { items: PickingItem[]; expectedTotal?: number } {
   const items: PickingItem[] = [];
   let expectedTotal: number | undefined;
 
-  // Agrupa linhas que continuam descrição (não começam com ID de 7 dígitos).
-  // Linhas como "Total 95" / "Página 1 de 2" são detectadas e NÃO entram em merge.
-  const ID_RE = /^(\d{7})\s+(.+)$/;
+  // 1) Localiza o X do cabeçalho QTD / Quantidade
+  let qtyX: number | null = null;
+  for (const r of rows) {
+    const tk = r.tokens.find((t) => /^(qtd|quantidade)\.?$/i.test(t.text.trim()));
+    if (tk) { qtyX = tk.x; break; }
+  }
+
+  const ID_RE = /^\d{7}$/;
   const TOTAL_RE = /^total\s+(\d+)\b/i;
   const FOOTER_RE = /^(página|page|filtros|expedição|separado em|total\b)/i;
-  const merged: string[] = [];
+
+  // 2) Junta linhas-continuação à última linha de dado
+  const dataRows: Row[] = [];
   for (const r of rows) {
     const t = r.text.trim();
     if (!t) continue;
-    const totalMatch = t.match(TOTAL_RE);
-    if (totalMatch) {
-      expectedTotal = parseInt(totalMatch[1], 10);
-      continue;
-    }
+    const tm = t.match(TOTAL_RE);
+    if (tm) { expectedTotal = parseInt(tm[1], 10); continue; }
     if (FOOTER_RE.test(t)) continue;
-    if (ID_RE.test(t)) {
-      merged.push(t);
-    } else if (merged.length > 0) {
-      merged[merged.length - 1] += " " + t;
+
+    const startsWithId = r.tokens.length > 0 && ID_RE.test(r.tokens[0].text.trim());
+    if (startsWithId) {
+      dataRows.push({ ...r, tokens: [...r.tokens] });
+    } else if (dataRows.length > 0) {
+      dataRows[dataRows.length - 1].tokens.push(...r.tokens);
     }
   }
 
-  for (const line of merged) {
-    const m = line.match(ID_RE);
-    if (!m) continue;
-    const rest = m[2].trim();
-
-    // QTD = último inteiro isolado da linha
-    const qtyMatch = rest.match(/(\d+)\s*$/);
-    if (!qtyMatch) continue;
-    const quantidade = parseInt(qtyMatch[1], 10);
-    if (!Number.isFinite(quantidade) || quantidade <= 0 || quantidade > 9999) continue;
-
-    // Conteúdo entre o início e o último número = "SKU NOME..."
-    const beforeQty = rest.slice(0, qtyMatch.index!).trim();
-    if (!beforeQty) continue;
-
-    // SKU = primeiro token (até primeiro espaço). Como o NOME costuma começar
-    // com "Cortina ..." ou outra palavra, o primeiro token concentra o SKU completo.
-    const firstSpace = beforeQty.search(/\s/);
-    const sku = (firstSpace === -1 ? beforeQty : beforeQty.slice(0, firstSpace)).toUpperCase();
-    const nome = firstSpace === -1 ? "" : beforeQty.slice(firstSpace + 1).trim();
-
+  // 3) Em cada linha: SKU = 2º token; QTD = token inteiro mais próximo de qtyX
+  for (const r of dataRows) {
+    const tokens = r.tokens;
+    if (tokens.length < 2) continue;
+    const sku = tokens[1].text.trim().toUpperCase();
     if (!sku) continue;
+
+    let quantidade = 0;
+    let qtyToken: Token | null = null;
+
+    if (qtyX !== null) {
+      let best: { dist: number; val: number; tk: Token } | null = null;
+      for (let i = 1; i < tokens.length; i++) {
+        const t = tokens[i];
+        const txt = t.text.trim();
+        if (!/^\d+$/.test(txt)) continue;
+        const v = parseInt(txt, 10);
+        if (v <= 0 || v > 9999) continue;
+        const dist = Math.abs(t.x - qtyX);
+        if (!best || dist < best.dist) best = { dist, val: v, tk: t };
+      }
+      if (best) { quantidade = best.val; qtyToken = best.tk; }
+    }
+
+    if (!quantidade) {
+      for (let i = tokens.length - 1; i >= 1; i--) {
+        const txt = tokens[i].text.trim();
+        if (/^\d+$/.test(txt)) {
+          const v = parseInt(txt, 10);
+          if (v > 0 && v <= 9999) { quantidade = v; qtyToken = tokens[i]; break; }
+        }
+      }
+    }
+
+    if (!quantidade) continue;
+
+    const descTokens = tokens.slice(2).filter((t) => t !== qtyToken);
+    const nome = descTokens.map((t) => t.text).join(" ").replace(/\s+/g, " ").trim();
 
     items.push({ sku, quantidade, source: nome || undefined });
   }
+
   return { items, expectedTotal };
 }
 
