@@ -25,6 +25,22 @@ export interface ParsedLabel {
   obs: string;
   isDupla: boolean;
   duplaType?: string;
+  // Campos preenchidos durante a produção (persistidos)
+  cortador?: string;
+  overloque?: string;
+  costura?: string;
+  saidaInicio?: string;
+}
+
+/** Ordenação canônica usada na lista, no DOCX e na impressão. */
+export function sortLabels(labels: ParsedLabel[]): ParsedLabel[] {
+  return [...labels].sort((a, b) => {
+    const m = a.modelo.localeCompare(b.modelo, "pt-BR");
+    if (m !== 0) return m;
+    const t = a.tamanho.localeCompare(b.tamanho, "pt-BR");
+    if (t !== 0) return t;
+    return (a.lote || "").localeCompare(b.lote || "", "pt-BR");
+  });
 }
 
 function findPrefix(sku: string): SkuPrefix | null {
