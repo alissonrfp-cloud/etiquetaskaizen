@@ -181,24 +181,36 @@ export async function extractPdfRawText(file: File): Promise<string> {
 }
 
 /**
- * Encode a file as base64 (for sending the raw PDF to the AI fallback).
+ * Renderiza cada página do PDF como PNG base64 (data URL).
+ * Usado pelo OCR multi-página: envia uma imagem por página.
  */
-export async function fileToBase64(file: File): Promise<string> {
-  const buf = await file.arrayBuffer();
-  const bytes = new Uint8Array(buf);
-  let binary = "";
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+export async function renderPdfPagesAsPng(file: File, scale = 2): Promise<string[]> {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const pages: string[] = [];
+
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+    const page = await pdf.getPage(pageNum);
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) continue;
+    await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+    pages.push(canvas.toDataURL("image/png"));
+    canvas.width = 0;
+    canvas.height = 0;
   }
-  return btoa(binary);
+  return pages;
 }
 
 /**
  * Robust pipeline:
  * 1. Try the local heuristic parser (fast, free).
  * 2. If it returns 0 items (likely an unsupported layout), fall back to the AI edge function.
- *    - Send extracted text if available; otherwise send the PDF for OCR.
+ *    - Prefere texto extraído (barato).
+ *    - Sem texto suficiente → envia uma imagem PNG por página (OCR multi-página).
  *
  * `forceAi` skips the heuristic and goes straight to the AI.
  */
@@ -215,29 +227,31 @@ export async function parsePickingListSmart(
     }
   }
 
-  // AI fallback
   const textContent = await extractPdfRawText(file).catch(() => "");
   const hasText = textContent.replace(/\s+/g, "").length > 50;
 
-  const payload: { textContent?: string; pdfBase64?: string } = {};
+  const payload: { textContent?: string; pageImages?: string[]; knownPrefixes: string[]; knownColors: string[] } = {
+    knownPrefixes: KNOWN_PREFIXES,
+    knownColors: KNOWN_COLORS,
+  };
   if (hasText) {
     payload.textContent = textContent;
   } else {
-    payload.pdfBase64 = await fileToBase64(file);
+    payload.pageImages = await renderPdfPagesAsPng(file).catch(() => []);
+    if (payload.pageImages.length === 0) {
+      throw new Error("Não foi possível renderizar as páginas do PDF para OCR");
+    }
   }
 
   const { data, error } = await supabase.functions.invoke("parse-picking-pdf", {
     body: payload,
   });
 
-  if (error) {
-    throw new Error(error.message || "Falha na extração via IA");
-  }
-  if (data?.error) {
-    throw new Error(data.error);
-  }
+  if (error) throw new Error(error.message || "Falha na extração via IA");
+  if (data?.error) throw new Error(data.error);
 
   const items: PickingItem[] = data?.items ?? [];
   return { items, method: hasText ? "ai" : "ai-ocr" };
 }
+
 
