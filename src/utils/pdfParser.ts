@@ -1,21 +1,30 @@
 import * as pdfjsLib from "pdfjs-dist";
+import { SKU_PREFIXES, CORES_TECIDO } from "@/data/skuDatabase";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs`;
 
-interface PickingItem {
+export interface PickingItem {
   sku: string;
   quantidade: number;
+  /** Motivo se a extração for parcial/incerta (apenas informativo) */
+  warning?: string;
 }
 
-/** Known SKU prefixes sorted longest first */
-const KNOWN_PREFIXES = [
-  "CDGLBI", "CDGLMI", "CDGLBW", "CDGLMW", "CDGLBS", "CDGLMS", "CDGLBD", "CDGLMD",
-  "CBTI", "CBTS", "CBTW", "CBTD",
-  "CGLI", "CGLS", "CGLW", "CGLD",
-  "COXF",
-].sort((a, b) => b.length - a.length);
+/** Prefixos conhecidos derivados do catálogo (fonte única). Ordenados do maior pro menor. */
+const KNOWN_PREFIXES = [...SKU_PREFIXES.map((p) => p.prefix)].sort((a, b) => b.length - a.length);
 
-const KNOWN_COLORS = ["BRANCO", "BEGE", "CHUMBO", "CINZA", "PALHA", "PRETO", "TABACO"];
+const KNOWN_COLORS = CORES_TECIDO.map((c) => c.toUpperCase());
+
+/**
+ * Extract the color from the NOME field.
+ */
+function extractColorFromNome(nome: string): string | null {
+  const upper = nome.toUpperCase();
+  for (const color of KNOWN_COLORS) {
+    if (upper.includes(color)) return color;
+  }
+  return null;
+}
 
 /**
  * Extract the color from the NOME field.
