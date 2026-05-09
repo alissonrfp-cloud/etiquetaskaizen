@@ -30,6 +30,8 @@ export interface ParsedLabel {
   overloque?: string;
   costura?: string;
   saidaInicio?: string;
+  /** Quando true, "medidasCorte" foi editado manualmente e não deve ser recalculado. */
+  medidasCorteManual?: boolean;
 }
 
 /** Ordenação canônica usada na lista, no DOCX e na impressão. */
