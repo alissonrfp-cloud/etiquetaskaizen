@@ -1,52 +1,79 @@
-# Importação de PDF confiável com IA
+# Busca preditiva / por facetas no SKU
 
-## Problema
+## Hoje
 
-O parser atual (`src/utils/pdfParser.ts`) depende de regex e de uma lista fixa de prefixos/cores. Como os PDFs vêm de sistemas variados, qualquer mudança de layout (colunas mescladas, descrição em outra linha, espaçamento diferente) resulta em SKUs não reconhecidos.
+`CurtainSearch.tsx` faz match literal: cada palavra digitada precisa estar no nome do produto. Resultado: o usuário precisa adivinhar a frase exata. Quando digita "cortina dupla" funciona porque a string "Dupla" está no nome, mas não há nenhuma orientação visual de quais palavras completam a busca.
 
-Regex sozinho não escala para múltiplos formatos. A solução robusta é deixar uma LLM normalizar o texto extraído em uma lista estruturada de `{sku, quantidade}`.
+## Objetivo
 
-## Solução proposta
+Conforme o usuário digita, mostrar **chips de sugestão** acima da lista, propondo a próxima palavra-chave que faz sentido. Clicar no chip adiciona a palavra à query e refina os resultados.
 
-Pipeline em 3 camadas, do mais barato ao mais robusto:
+## Como vai parecer
 
-1. **Extração de texto local (pdf.js)** — mantém o que já existe, mas simplifica: extrai todo o texto da página preservando linhas (Y) e ordem (X), sem tentar adivinhar SKU ainda.
-2. **Parser heurístico atual** — roda primeiro como tentativa rápida e gratuita.
-3. **Fallback via Lovable AI Gateway** — se o heurístico encontrar **menos itens que o esperado** (ou zero), envia o texto extraído para o modelo `google/gemini-2.5-flash` com *structured output* (tool calling) pedindo a lista de pares `{sku, quantidade}`. Para PDFs escaneados (sem texto), envia o PDF como `inline_data` para OCR via visão.
+```
+Buscar: [ cortina ▮                              ]
+Sugestões:  ( Dupla )  ( Blackout )  ( Flamê )
+─────────────────────────────────────────────────
+[lista atual de resultados que casam]
+```
 
-A IA recebe instruções com:
-- Lista de prefixos válidos (`CDGLBI`, `CBTS`, etc.)
-- Lista de cores válidas
-- Formato esperado: `PREFIXO + LARGURA + X + ALTURA + COR`
-- Exemplos de SKUs corretos
-- Instrução para ignorar linhas de cabeçalho/rodapé/total
+Depois que o usuário clica em "Dupla" (ou digita):
 
-Cada SKU retornado pela IA ainda passa pelo `createLabel` existente, que valida contra `skuDatabase`. SKUs inválidos viram a lista de erros já mostrada no toast.
+```
+Buscar: [ cortina dupla ▮                        ]
+Sugestões:  ( Blackout )  ( Microfibra )
+            ( Ilhós )  ( Wave )  ( Trilho Suiço ) ( Trilho Duplo )
+─────────────────────────────────────────────────
+[só duplas listadas]
+```
+
+Mais um clique em "Ilhós":
+
+```
+Buscar: [ cortina dupla ilhós ▮                  ]
+Sugestões:  ( Blackout )  ( Microfibra )
+            ( Branco ) ( Bege ) ( Cinza ) ...
+            ( 3,00 x 2,70 ) ( 4,00 x 2,80 ) ...
+─────────────────────────────────────────────────
+```
+
+Os chips ficam agrupados por **categoria** (Tipo, Acabamento superior, Cor, Tamanho) e só aparecem categorias **ainda não escolhidas** e que **ainda têm mais de uma opção** entre os resultados filtrados — quando sobra uma opção só, ela some (já está implícito).
+
+## Como filtrar
+
+A busca continua sendo "todas as palavras precisam aparecer" (já funciona). A novidade é gerar os chips dinamicamente:
+
+1. Calcular o conjunto de resultados atual (mesmo filtro que existe hoje).
+2. Para cada faceta (`tipo`, `superior`, `cor`, `tamanho`), pegar os valores únicos dentro desse conjunto.
+3. Remover valores que já apareçam na query (ex: se já tem "ilhós" digitado, não sugerir "Ilhós").
+4. Mostrar até 6 chips por faceta, com rótulo da faceta como título pequeno.
+
+## Sinônimos
+
+Para a busca tolerar variações comuns, mapeio sinônimos antes de comparar:
+- "ilhos" / "ilhós" / "ilhoses" → ilhós
+- "trilho suico" / "suiço" → trilho suiço
+- "flame" / "flamê" → flamê
+- "blackout" / "black" → blackout
+
+(Normalização: `lowercase` + remover acentos em ambos os lados antes do `includes`.)
 
 ## Mudanças
 
-1. **Habilitar Lovable Cloud** (necessário para usar o AI Gateway sem expor chave). Único pré-requisito de infra.
-2. **Edge function `parse-picking-pdf`** — recebe o PDF (base64) + texto pré-extraído, chama Gemini com schema estruturado, retorna `{items: [{sku, quantidade}]}`. Mantém a chave `LOVABLE_API_KEY` no servidor.
-3. **`src/utils/pdfParser.ts`** — refatorado:
-   - Mantém extração local e regex como *fast path*.
-   - Se resultado < 1 item OU usuário marcar opção "modo IA", chama a edge function.
-   - Mescla resultados, deduplica por SKU.
-4. **`src/components/PdfUpload.tsx`** — adiciona toggle "Usar IA (mais preciso)" e indicador de progresso quando estiver chamando a IA. Toast melhorado mostrando contagem de itens lidos por cada método.
+- **`src/components/CurtainSearch.tsx`** — único arquivo afetado:
+  - Adicionar normalização sem acento na função de match.
+  - Construir, junto com `CATALOG`, uma estrutura auxiliar `{ tipo, superior, cor, tamanho }` por SKU.
+  - Calcular facetas restantes a partir dos resultados filtrados.
+  - Renderizar chips agrupados acima da lista de resultados, clicáveis (acrescentam palavra à query com espaço).
+  - Botão "limpar" (×) na barra para resetar query rapidamente.
+  - Aumentar o limite de resultados visíveis quando a query estiver vazia ou curta? Não — manter mínimo de 2 caracteres ou 1 chip clicado para abrir.
 
-## Detalhes técnicos
+## O que NÃO muda
 
-- Modelo: `google/gemini-2.5-flash` (rápido e barato; suporta visão para PDFs escaneados).
-- Structured output via tool calling com schema:
-  ```
-  { items: [{ sku: string, quantidade: number }] }
-  ```
-- Limite: PDFs até ~20 páginas processados em uma chamada; acima disso a função divide em lotes.
-- Custo: ~1 chamada por importação. Usuário precisa ter créditos de Workspace AI.
-- Sem mudanças em `skuParser.ts`, `Index.tsx`, ou no fluxo de etiquetas — a confiabilidade ganha é isolada na camada de parsing.
+- Estrutura de `SKU_PREFIXES`, `CORES_TECIDO`, `SIZES`.
+- API `onSelect(sku)` para o componente pai.
+- Validação de SKU no resto do app.
 
-## Resultado esperado
+## Resultado
 
-- PDFs do layout atual: continuam funcionando instantaneamente (fast path).
-- PDFs novos/diferentes: a IA extrai os SKUs mesmo com layouts não vistos.
-- PDFs escaneados (imagem): OCR via visão da Gemini resolve.
-- SKUs inválidos: continuam sinalizados como erro (não inventamos SKU).
+Usuário descobre o catálogo digitando uma palavra e seguindo as sugestões — sem precisar saber se chamamos de "Dupla Flamê c/ Blackout" ou só "blackout". A busca continua funcionando exatamente como antes para quem já sabe o que quer.
