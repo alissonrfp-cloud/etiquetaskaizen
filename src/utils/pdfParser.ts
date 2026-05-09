@@ -114,14 +114,6 @@ function parseTableMode(rows: { text: string }[]): { items: PickingItem[]; expec
 
     items.push({ sku, quantidade, source: nome || undefined });
   }
-
-  // Procura "Total N" no final
-  const totalLine = rows.map((r) => r.text).reverse().find((t) => /^total\s+\d+/i.test(t.trim()));
-  if (totalLine) {
-    const tm = totalLine.match(/^total\s+(\d+)/i);
-    if (tm) expectedTotal = parseInt(tm[1], 10);
-  }
-
   return { items, expectedTotal };
 }
 
