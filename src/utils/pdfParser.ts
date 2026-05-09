@@ -197,7 +197,7 @@ export async function renderPdfPagesAsPng(file: File, scale = 2): Promise<string
     canvas.height = viewport.height;
     const ctx = canvas.getContext("2d");
     if (!ctx) continue;
-    await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+    await page.render({ canvasContext: ctx, viewport }).promise;
     pages.push(canvas.toDataURL("image/png"));
     canvas.width = 0;
     canvas.height = 0;
