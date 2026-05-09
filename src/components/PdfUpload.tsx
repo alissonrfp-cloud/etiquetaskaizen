@@ -177,7 +177,8 @@ export function PdfUpload({ remessa, lote, categoria, cliente, onLabelsAdded }: 
       <PdfReviewDialog
         open={reviewOpen}
         rows={reviewRows}
-        onCancel={() => { setReviewOpen(false); setReviewRows([]); }}
+        expectedTotal={expectedTotal}
+        onCancel={() => { setReviewOpen(false); setReviewRows([]); setExpectedTotal(undefined); }}
         onConfirm={handleConfirm}
       />
     </div>
