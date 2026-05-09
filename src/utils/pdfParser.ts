@@ -6,163 +6,41 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs
 export interface PickingItem {
   sku: string;
   quantidade: number;
-  /** Motivo se a extração for parcial/incerta (apenas informativo) */
+  /** Linha original (descrição/NOME) — útil para a tela de revisão. */
+  source?: string;
+  /** Aviso opcional. */
   warning?: string;
 }
 
-/** Prefixos conhecidos derivados do catálogo (fonte única). Ordenados do maior pro menor. */
-const KNOWN_PREFIXES = [...SKU_PREFIXES.map((p) => p.prefix)].sort((a, b) => b.length - a.length);
+export interface PickingParseResult {
+  items: PickingItem[];
+  /** "Total N" lido do rodapé da picking list, quando disponível. */
+  expectedTotal?: number;
+  /** "heuristic-table" = picking list Kaizen, "heuristic-loose" = fallback antigo. */
+  mode: "heuristic-table" | "heuristic-loose";
+}
 
+const KNOWN_PREFIXES = [...SKU_PREFIXES.map((p) => p.prefix)].sort((a, b) => b.length - a.length);
 const KNOWN_COLORS = CORES_TECIDO.map((c) => c.toUpperCase());
 
-/**
- * Extract the color from the NOME field.
- */
-function extractColorFromNome(nome: string): string | null {
-  const upper = nome.toUpperCase();
-  for (const color of KNOWN_COLORS) {
-    if (upper.includes(color)) return color;
-  }
-  return null;
-}
-
-
-/**
- * Parse a picking list PDF and extract SKU + quantity pairs.
- * Uses a regex-based approach since columns often merge in text extraction.
- */
-export async function parsePickingListPdf(file: File): Promise<PickingItem[]> {
+/** Lê o PDF e devolve linhas de texto agrupadas por baseline Y. */
+async function extractRows(file: File): Promise<{ y: number; text: string; page: number }[]> {
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-
-  const items: PickingItem[] = [];
-
-  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-    const page = await pdf.getPage(pageNum);
-    const textContent = await page.getTextContent();
-
-    // Group text items by Y position with tolerance (PDFs sometimes shift baselines slightly)
-    const Y_TOLERANCE = 3;
-    const rawItems: { x: number; y: number; text: string }[] = [];
-    for (const item of textContent.items) {
-      if (!("str" in item) || !item.str.trim()) continue;
-      rawItems.push({ x: item.transform[4], y: item.transform[5], text: item.str });
-    }
-    // Sort by Y descending then group with tolerance
-    rawItems.sort((a, b) => b.y - a.y);
-    const groups: { y: number; items: { x: number; text: string }[] }[] = [];
-    for (const it of rawItems) {
-      const last = groups[groups.length - 1];
-      if (last && Math.abs(last.y - it.y) <= Y_TOLERANCE) {
-        last.items.push({ x: it.x, text: it.text });
-      } else {
-        groups.push({ y: it.y, items: [{ x: it.x, text: it.text }] });
-      }
-    }
-    let sortedRows = groups.map((g) => ({
-      y: g.y,
-      text: g.items.sort((a, b) => a.x - b.x).map((c) => c.text).join(" "),
-    }));
-
-    // Fallback: if a row has a SKU but no trailing number, merge with next row
-    // (sometimes the quantity is rendered on a slightly different baseline)
-    const merged: { y: number; text: string }[] = [];
-    for (let i = 0; i < sortedRows.length; i++) {
-      const cur = sortedRows[i];
-      const next = sortedRows[i + 1];
-      const hasPrefix = KNOWN_PREFIXES.some((p) => cur.text.toUpperCase().includes(p));
-      const endsWithNumber = /\d+\s*$/.test(cur.text.trim());
-      const nextIsLoneNumber = next && /^\s*\d+\s*$/.test(next.text.trim());
-      if (hasPrefix && !endsWithNumber && nextIsLoneNumber) {
-        merged.push({ y: cur.y, text: cur.text + " " + next.text });
-        i++; // skip next
-      } else {
-        merged.push(cur);
-      }
-    }
-    sortedRows = merged;
-
-    // For each row, try to extract a SKU pattern using regex
-    for (const row of sortedRows) {
-      const line = row.text.trim();
-      if (!line) continue;
-
-      // Find a known prefix in the line
-      let foundPrefix = "";
-      let prefixIdx = -1;
-      for (const prefix of KNOWN_PREFIXES) {
-        const idx = line.toUpperCase().indexOf(prefix);
-        if (idx >= 0) {
-          foundPrefix = prefix;
-          prefixIdx = idx;
-          break;
-        }
-      }
-      if (!foundPrefix) continue;
-
-      // Extract dimensions after the prefix: e.g. 300X270
-      const afterPrefix = line.substring(prefixIdx + foundPrefix.length);
-      const dimMatch = afterPrefix.match(/^(\d+)X(\d+)/i);
-      if (!dimMatch) continue;
-
-      const dimEnd = prefixIdx + foundPrefix.length + dimMatch[0].length;
-      const baseSku = line.substring(prefixIdx, dimEnd).toUpperCase();
-
-      // Try to get color from immediately after dimensions (concatenated SKU like CBTS300X270BRANCO)
-      const restOfLine = line.substring(dimEnd).toUpperCase();
-      const colorMatch = restOfLine.match(/^([A-ZÇ]+)/);
-      let color: string | null = null;
-      if (colorMatch && KNOWN_COLORS.includes(colorMatch[1])) {
-        color = colorMatch[1];
-      } else {
-        color = extractColorFromNome(restOfLine);
-      }
-
-      const sku = color ? baseSku + color : baseSku;
-
-      // Extract quantity: pega TODOS os números após o SKU+cor e escolhe o
-      // primeiro razoável (1-999). Evita capturar códigos de barras, preços
-      // ou pesos no fim da linha.
-      const qtyZoneStart = dimEnd + (color?.length ?? 0);
-      const qtyZone = line.substring(qtyZoneStart);
-      const numbers = Array.from(qtyZone.matchAll(/\b(\d+(?:[.,]\d+)?)\b/g)).map((m) => ({
-        raw: m[1],
-        val: parseFloat(m[1].replace(",", ".")),
-        idx: m.index ?? 0,
-      }));
-      // Filtra: inteiros entre 1 e 999, sem ponto/vírgula (descarta R$ 12,50 ou 1.234)
-      const candidates = numbers.filter(
-        (n) => Number.isInteger(n.val) && n.val >= 1 && n.val <= 999 && !/[.,]/.test(n.raw),
-      );
-      if (candidates.length === 0) continue;
-      // Pega o PRIMEIRO inteiro razoável após o SKU (geralmente é a quantidade)
-      const qty = candidates[0].val;
-
-      items.push({ sku, quantidade: qty });
-    }
-  }
-
-  return items;
-}
-
-/**
- * Extract all raw text from a PDF, preserving line order. Used as input for the AI fallback.
- */
-export async function extractPdfRawText(file: File): Promise<string> {
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const lines: string[] = [];
+  const all: { y: number; text: string; page: number }[] = [];
 
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
     const page = await pdf.getPage(pageNum);
     const textContent = await page.getTextContent();
     const Y_TOLERANCE = 3;
+
     const raw: { x: number; y: number; text: string }[] = [];
     for (const item of textContent.items) {
       if (!("str" in item) || !item.str.trim()) continue;
       raw.push({ x: item.transform[4], y: item.transform[5], text: item.str });
     }
     raw.sort((a, b) => b.y - a.y);
+
     const groups: { y: number; items: { x: number; text: string }[] }[] = [];
     for (const it of raw) {
       const last = groups[groups.length - 1];
@@ -173,22 +51,146 @@ export async function extractPdfRawText(file: File): Promise<string> {
       }
     }
     for (const g of groups) {
-      lines.push(g.items.sort((a, b) => a.x - b.x).map((c) => c.text).join(" "));
+      const text = g.items.sort((a, b) => a.x - b.x).map((c) => c.text).join(" ").replace(/\s+/g, " ").trim();
+      if (text) all.push({ y: g.y, text, page: pageNum });
     }
-    lines.push(""); // blank line between pages
   }
-  return lines.join("\n");
+  return all;
 }
 
 /**
- * Renderiza cada página do PDF como PNG base64 (data URL).
- * Usado pelo OCR multi-página: envia uma imagem por página.
+ * Modo TABELA — formato Picking List da Kaizen.
+ * Layout fixo: ID(7 dígitos) | SKU | NOME | QTD(último inteiro).
+ * Captura TODOS os SKUs (inclusive não reconhecidos) para a tela de revisão decidir.
  */
+function parseTableMode(rows: { text: string }[]): { items: PickingItem[]; expectedTotal?: number } {
+  const items: PickingItem[] = [];
+  let expectedTotal: number | undefined;
+
+  // Agrupa linhas que continuam descrição (não começam com ID de 7 dígitos)
+  const ID_RE = /^(\d{7})\s+(.+)$/;
+  const merged: string[] = [];
+  for (const r of rows) {
+    const t = r.text.trim();
+    if (!t) continue;
+    if (ID_RE.test(t)) {
+      merged.push(t);
+    } else if (merged.length > 0) {
+      // continuação da última linha (descrição quebrada)
+      merged[merged.length - 1] += " " + t;
+    }
+  }
+
+  for (const line of merged) {
+    const m = line.match(ID_RE);
+    if (!m) continue;
+    const rest = m[2].trim();
+
+    // QTD = último inteiro isolado da linha
+    const qtyMatch = rest.match(/(\d+)\s*$/);
+    if (!qtyMatch) continue;
+    const quantidade = parseInt(qtyMatch[1], 10);
+    if (!Number.isFinite(quantidade) || quantidade <= 0 || quantidade > 9999) continue;
+
+    // Conteúdo entre o início e o último número = "SKU NOME..."
+    const beforeQty = rest.slice(0, qtyMatch.index!).trim();
+    if (!beforeQty) continue;
+
+    // SKU = primeiro token (até primeiro espaço). Como o NOME costuma começar
+    // com "Cortina ..." ou outra palavra, o primeiro token concentra o SKU completo.
+    const firstSpace = beforeQty.search(/\s/);
+    const sku = (firstSpace === -1 ? beforeQty : beforeQty.slice(0, firstSpace)).toUpperCase();
+    const nome = firstSpace === -1 ? "" : beforeQty.slice(firstSpace + 1).trim();
+
+    if (!sku) continue;
+
+    items.push({ sku, quantidade, source: nome || undefined });
+  }
+
+  // Procura "Total N" no final
+  const totalLine = rows.map((r) => r.text).reverse().find((t) => /^total\s+\d+/i.test(t.trim()));
+  if (totalLine) {
+    const tm = totalLine.match(/^total\s+(\d+)/i);
+    if (tm) expectedTotal = parseInt(tm[1], 10);
+  }
+
+  return { items, expectedTotal };
+}
+
+/**
+ * Modo LOOSE — heurística antiga, para PDFs sem o cabeçalho ID/SKU/NOME/QTD.
+ * Procura prefixos conhecidos e tenta inferir cor + qtd. Mais frágil.
+ */
+function parseLooseMode(rows: { text: string }[]): PickingItem[] {
+  const items: PickingItem[] = [];
+  for (const r of rows) {
+    const line = r.text;
+    let foundPrefix = "";
+    let prefixIdx = -1;
+    for (const prefix of KNOWN_PREFIXES) {
+      const idx = line.toUpperCase().indexOf(prefix);
+      if (idx >= 0) {
+        foundPrefix = prefix;
+        prefixIdx = idx;
+        break;
+      }
+    }
+    if (!foundPrefix) continue;
+
+    const afterPrefix = line.substring(prefixIdx + foundPrefix.length);
+    const dimMatch = afterPrefix.match(/^(\d+)X(\d+)/i);
+    if (!dimMatch) continue;
+    const dimEnd = prefixIdx + foundPrefix.length + dimMatch[0].length;
+    const baseSku = line.substring(prefixIdx, dimEnd).toUpperCase();
+
+    const restOfLine = line.substring(dimEnd).toUpperCase();
+    const colorMatch = restOfLine.match(/^([A-ZÇ]+)/);
+    let color: string | null = null;
+    if (colorMatch && KNOWN_COLORS.includes(colorMatch[1])) {
+      color = colorMatch[1];
+    } else {
+      for (const c of KNOWN_COLORS) if (restOfLine.includes(c)) { color = c; break; }
+    }
+    const sku = color ? baseSku + color : baseSku;
+
+    // QTD = último inteiro isolado (mais robusto que "primeiro após o SKU")
+    const qtyMatch = line.match(/(\d+)\s*$/);
+    const qty = qtyMatch ? parseInt(qtyMatch[1], 10) : 0;
+    if (qty > 0 && qty < 1000) {
+      items.push({ sku, quantidade: qty });
+    }
+  }
+  return items;
+}
+
+/** Detecta cabeçalho da Picking List (ID, SKU, NOME, QTD em qualquer ordem nas mesmas linhas iniciais). */
+function isPickingListFormat(rows: { text: string }[]): boolean {
+  const head = rows.slice(0, 30).map((r) => r.text.toUpperCase()).join(" \n ");
+  if (/PICKING LIST/.test(head)) return true;
+  if (/\bID\b.*\bSKU\b.*\bNOME\b.*\bQTD\b/.test(head)) return true;
+  return false;
+}
+
+export async function parsePickingListPdf(file: File): Promise<PickingParseResult> {
+  const rows = await extractRows(file);
+  if (isPickingListFormat(rows)) {
+    const { items, expectedTotal } = parseTableMode(rows);
+    return { items, expectedTotal, mode: "heuristic-table" };
+  }
+  return { items: parseLooseMode(rows), mode: "heuristic-loose" };
+}
+
+/** Texto bruto para fallback de IA. */
+export async function extractPdfRawText(file: File): Promise<string> {
+  const rows = await extractRows(file);
+  return rows.map((r) => r.text).join("\n");
+}
+
+/** Renderiza cada página como PNG data URL para OCR multi-página. */
 export async function renderPdfPagesAsPng(file: File, scale = 2): Promise<string[]> {
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   const pages: string[] = [];
-
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
     const page = await pdf.getPage(pageNum);
     const viewport = page.getViewport({ scale });
@@ -206,24 +208,21 @@ export async function renderPdfPagesAsPng(file: File, scale = 2): Promise<string
 }
 
 /**
- * Robust pipeline:
- * 1. Try the local heuristic parser (fast, free).
- * 2. If it returns 0 items (likely an unsupported layout), fall back to the AI edge function.
- *    - Prefere texto extraído (barato).
- *    - Sem texto suficiente → envia uma imagem PNG por página (OCR multi-página).
- *
- * `forceAi` skips the heuristic and goes straight to the AI.
+ * Pipeline robusto:
+ * 1. Heurística local (tabela ou loose). Se algo for extraído, usa.
+ * 2. Senão, IA via texto extraído.
+ * 3. Sem texto, IA + OCR de imagens.
  */
 export async function parsePickingListSmart(
   file: File,
   opts?: { forceAi?: boolean },
-): Promise<{ items: PickingItem[]; method: "heuristic" | "ai" | "ai-ocr" }> {
+): Promise<{ items: PickingItem[]; expectedTotal?: number; method: "heuristic" | "ai" | "ai-ocr" }> {
   const { supabase } = await import("@/integrations/supabase/client");
 
   if (!opts?.forceAi) {
     const heuristic = await parsePickingListPdf(file);
-    if (heuristic.length > 0) {
-      return { items: heuristic, method: "heuristic" };
+    if (heuristic.items.length > 0) {
+      return { items: heuristic.items, expectedTotal: heuristic.expectedTotal, method: "heuristic" };
     }
   }
 
@@ -253,5 +252,3 @@ export async function parsePickingListSmart(
   const items: PickingItem[] = data?.items ?? [];
   return { items, method: hasText ? "ai" : "ai-ocr" };
 }
-
-
