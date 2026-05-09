@@ -12,12 +12,8 @@ interface LabelListProps {
 }
 
 export function LabelList({ labels, onRemove, onUpdate, onToggleSubdivisao }: LabelListProps) {
-  // Ordem estável: só recalcula quando o conjunto de IDs ou modelos muda — não a cada
-  // tecla digitada num campo editável (evita perder o foco).
-  const orderKey = useMemo(
-    () => labels.map((l) => `${l.id}|${l.modelo}|${l.tamanho}|${l.lote}`).join("§"),
-    [labels],
-  );
+  // Ordem estável: só recalcula quando entra/sai linha (não a cada digitação em campo livre).
+  const orderKey = useMemo(() => labels.map((l) => l.id).join("§"), [labels]);
   const orderedIds = useMemo(() => sortLabels(labels).map((l) => l.id), [orderKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const sortedLabels = useMemo(() => {
     const map = new Map(labels.map((l) => [l.id, l]));
@@ -39,6 +35,14 @@ export function LabelList({ labels, onRemove, onUpdate, onToggleSubdivisao }: La
   const isSubdivided = (sub: string) => {
     const m = sub?.match(/^(\d+)\s*de\s*(\d+)$/i);
     return m ? parseInt(m[2]) > 1 : false;
+  };
+
+  // Wrapper para marcar medidasCorte como manual quando editado.
+  const handleUpdate = (id: string, field: keyof ParsedLabel, value: string | number | boolean) => {
+    onUpdate?.(id, field, value);
+    if (field === "medidasCorte") {
+      onUpdate?.(id, "medidasCorteManual", true);
+    }
   };
 
   return (
@@ -74,11 +78,11 @@ export function LabelList({ labels, onRemove, onUpdate, onToggleSubdivisao }: La
             return (
               <tr key={label.id}>
                 <td className={cellClass} style={{ backgroundColor: bg }}>{i + 1}</td>
-                <EditableCell labelId={label.id} field="remessa" value={label.remessa} bgColor={bg} onUpdate={onUpdate} />
-                <EditableCell labelId={label.id} field="lote" value={label.lote} bgColor={bg} bold onUpdate={onUpdate} />
-                <EditableCell labelId={label.id} field="quantidade" value={String(label.quantidade)} bgColor={bg} bold numeric onUpdate={onUpdate} />
-                <td className={cellClass} style={{ backgroundColor: bg, fontWeight: 700 }}>{label.subdivisao || "1 de 1"}</td>
-                <EditableCell labelId={label.id} field="corte" value={label.corte || ""} bgColor={bg} onUpdate={onUpdate} />
+                <EditableCell labelId={label.id} field="remessa" value={label.remessa} bgColor={bg} onUpdate={handleUpdate} />
+                <EditableCell labelId={label.id} field="lote" value={label.lote} bgColor={bg} bold onUpdate={handleUpdate} />
+                <EditableCell labelId={label.id} field="quantidade" value={String(label.quantidade)} bgColor={bg} bold numeric onUpdate={handleUpdate} />
+                <EditableCell labelId={label.id} field="subdivisao" value={label.subdivisao || "1 de 1"} bgColor={bg} bold onUpdate={handleUpdate} />
+                <EditableCell labelId={label.id} field="corte" value={label.corte || ""} bgColor={bg} onUpdate={handleUpdate} />
                 {showSaidaInicio && (
                   <EditableCell
                     labelId={label.id}
@@ -87,26 +91,58 @@ export function LabelList({ labels, onRemove, onUpdate, onToggleSubdivisao }: La
                     bgColor={colors.saida.backgroundColor}
                     textColor={colors.saida.textColor}
                     bold
-                    onUpdate={onUpdate}
+                    onUpdate={handleUpdate}
                   />
                 )}
-                <td className={cellClass} style={{ backgroundColor: bg }}>{label.tamanho}</td>
-                <td className={cellClass} style={{ backgroundColor: bg, whiteSpace: "pre-line" }}>{label.medidasCorte}</td>
-                <td className={cellClass} style={{ backgroundColor: colors.modelo.backgroundColor, color: colors.modelo.textColor, fontWeight: 600 }}>{label.modelo}</td>
-                <td className={cellClass} style={{ backgroundColor: colors.parteSup.backgroundColor, color: colors.parteSup.textColor }}>{label.parteSuperior}</td>
-                <EditableCell labelId={label.id} field="cortador" value={label.cortador || ""} bgColor={bg} onUpdate={onUpdate} />
-                <EditableCell labelId={label.id} field="overloque" value={label.overloque || ""} bgColor={bg} onUpdate={onUpdate} />
-                <EditableCell labelId={label.id} field="costura" value={label.costura || ""} bgColor={bg} onUpdate={onUpdate} />
-                <td className={cellClass} style={{ backgroundColor: bg }}>{label.cliente}</td>
-                <td className={cellClass} style={{ backgroundColor: colors.saida.backgroundColor, color: colors.saida.textColor, fontWeight: 700 }}>
-                  {label.dataSaida}
-                </td>
+                <EditableCell labelId={label.id} field="tamanho" value={label.tamanho} bgColor={bg} onUpdate={handleUpdate} minWidth={80} />
+                <EditableCell
+                  labelId={label.id}
+                  field="medidasCorte"
+                  value={label.medidasCorte}
+                  bgColor={bg}
+                  multiline
+                  minWidth={110}
+                  title="Tamanho do corte calculado. Ao editar, vira override e não recalcula mais."
+                  onUpdate={handleUpdate}
+                />
+                <EditableCell
+                  labelId={label.id}
+                  field="modelo"
+                  value={label.modelo}
+                  bgColor={colors.modelo.backgroundColor}
+                  textColor={colors.modelo.textColor}
+                  bold
+                  minWidth={90}
+                  onUpdate={handleUpdate}
+                />
+                <EditableCell
+                  labelId={label.id}
+                  field="parteSuperior"
+                  value={label.parteSuperior}
+                  bgColor={colors.parteSup.backgroundColor}
+                  textColor={colors.parteSup.textColor}
+                  minWidth={90}
+                  onUpdate={handleUpdate}
+                />
+                <EditableCell labelId={label.id} field="cortador" value={label.cortador || ""} bgColor={bg} onUpdate={handleUpdate} />
+                <EditableCell labelId={label.id} field="overloque" value={label.overloque || ""} bgColor={bg} onUpdate={handleUpdate} />
+                <EditableCell labelId={label.id} field="costura" value={label.costura || ""} bgColor={bg} onUpdate={handleUpdate} />
+                <EditableCell labelId={label.id} field="cliente" value={label.cliente} bgColor={bg} minWidth={90} onUpdate={handleUpdate} />
+                <EditableCell
+                  labelId={label.id}
+                  field="dataSaida"
+                  value={label.dataSaida}
+                  bgColor={colors.saida.backgroundColor}
+                  textColor={colors.saida.textColor}
+                  bold
+                  onUpdate={handleUpdate}
+                />
                 <EditableCell
                   labelId={label.id}
                   field="obs"
                   value={label.obs || ""}
                   bgColor={bg}
-                  onUpdate={onUpdate}
+                  onUpdate={handleUpdate}
                   placeholder="—"
                   minWidth={90}
                 />
@@ -145,8 +181,10 @@ function EditableCell({
   textColor,
   bold,
   numeric,
+  multiline,
   placeholder,
   minWidth = 70,
+  title,
   onUpdate,
 }: {
   labelId: string;
@@ -156,38 +194,55 @@ function EditableCell({
   textColor?: string;
   bold?: boolean;
   numeric?: boolean;
+  multiline?: boolean;
   placeholder?: string;
   minWidth?: number;
+  title?: string;
   onUpdate?: (id: string, field: keyof ParsedLabel, value: string | number | boolean) => void;
 }) {
   const [localVal, setLocalVal] = useState(value);
-  // Sync prop changes when not editing locally
-  if (value !== localVal && document.activeElement?.getAttribute("data-fieldid") !== `${labelId}:${String(field)}`) {
-    // Only re-sync when user is not actively editing this cell.
-    // (intentional non-effect to avoid stale state across re-renders)
+  const fieldId = `${labelId}:${String(field)}`;
+  const isEditing = typeof document !== "undefined" && document.activeElement?.getAttribute("data-fieldid") === fieldId;
+  if (!isEditing && value !== localVal) {
+    // Sincroniza valor externo quando célula não está em foco.
+    setLocalVal(value);
   }
 
   const cellClass = "px-2 py-1.5 border border-border text-xs text-center";
+  const baseStyle: React.CSSProperties = {
+    color: textColor,
+    fontWeight: bold ? 700 : undefined,
+  };
+  const sharedProps = {
+    "data-fieldid": fieldId,
+    value: localVal,
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const v = e.target.value;
+      setLocalVal(v);
+      if (numeric) {
+        const n = parseInt(v);
+        onUpdate?.(labelId, field, Number.isFinite(n) ? n : 0);
+      } else {
+        onUpdate?.(labelId, field, v);
+      }
+    },
+    placeholder: placeholder ?? "—",
+    title,
+    className: "w-full bg-transparent text-xs text-center outline-none border-none focus:ring-1 focus:ring-primary rounded px-1",
+    style: baseStyle,
+  };
+
   return (
     <td className={cellClass} style={{ backgroundColor: bgColor, minWidth }}>
-      <input
-        type={numeric ? "number" : "text"}
-        data-fieldid={`${labelId}:${String(field)}`}
-        value={localVal}
-        onChange={(e) => {
-          const v = e.target.value;
-          setLocalVal(v);
-          if (numeric) {
-            const n = parseInt(v);
-            onUpdate?.(labelId, field, Number.isFinite(n) ? n : 0);
-          } else {
-            onUpdate?.(labelId, field, v);
-          }
-        }}
-        className="w-full bg-transparent text-xs text-center outline-none border-none focus:ring-1 focus:ring-primary rounded px-1"
-        style={{ color: textColor, fontWeight: bold ? 700 : undefined }}
-        placeholder={placeholder ?? "—"}
-      />
+      {multiline ? (
+        <textarea
+          {...sharedProps}
+          rows={2}
+          style={{ ...baseStyle, resize: "none", whiteSpace: "pre-line" }}
+        />
+      ) : (
+        <input type={numeric ? "number" : "text"} {...sharedProps} />
+      )}
     </td>
   );
 }
