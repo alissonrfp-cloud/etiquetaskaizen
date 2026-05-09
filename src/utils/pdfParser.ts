@@ -121,16 +121,23 @@ export async function parsePickingListPdf(file: File): Promise<PickingItem[]> {
 
       const sku = color ? baseSku + color : baseSku;
 
-      // Extract quantity: last number on the line
-      const qtyMatch = line.match(/(\d+)\s*$/);
-      if (!qtyMatch) continue;
-      const qty = parseInt(qtyMatch[1]);
-      if (qty <= 0 || qty > 9999) continue;
-
-      // Avoid using a number that's part of the SKU itself as quantity
-      // If the last number is the dimension number, skip
-      const qtyStart = line.length - qtyMatch[1].length;
-      if (qtyStart < dimEnd + (color?.length ?? 0)) continue;
+      // Extract quantity: pega TODOS os números após o SKU+cor e escolhe o
+      // primeiro razoável (1-999). Evita capturar códigos de barras, preços
+      // ou pesos no fim da linha.
+      const qtyZoneStart = dimEnd + (color?.length ?? 0);
+      const qtyZone = line.substring(qtyZoneStart);
+      const numbers = Array.from(qtyZone.matchAll(/\b(\d+(?:[.,]\d+)?)\b/g)).map((m) => ({
+        raw: m[1],
+        val: parseFloat(m[1].replace(",", ".")),
+        idx: m.index ?? 0,
+      }));
+      // Filtra: inteiros entre 1 e 999, sem ponto/vírgula (descarta R$ 12,50 ou 1.234)
+      const candidates = numbers.filter(
+        (n) => Number.isInteger(n.val) && n.val >= 1 && n.val <= 999 && !/[.,]/.test(n.raw),
+      );
+      if (candidates.length === 0) continue;
+      // Pega o PRIMEIRO inteiro razoável após o SKU (geralmente é a quantidade)
+      const qty = candidates[0].val;
 
       items.push({ sku, quantidade: qty });
     }
