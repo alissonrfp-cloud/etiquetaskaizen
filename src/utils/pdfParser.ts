@@ -67,16 +67,24 @@ function parseTableMode(rows: { text: string }[]): { items: PickingItem[]; expec
   const items: PickingItem[] = [];
   let expectedTotal: number | undefined;
 
-  // Agrupa linhas que continuam descrição (não começam com ID de 7 dígitos)
+  // Agrupa linhas que continuam descrição (não começam com ID de 7 dígitos).
+  // Linhas como "Total 95" / "Página 1 de 2" são detectadas e NÃO entram em merge.
   const ID_RE = /^(\d{7})\s+(.+)$/;
+  const TOTAL_RE = /^total\s+(\d+)\b/i;
+  const FOOTER_RE = /^(página|page|filtros|expedição|separado em|total\b)/i;
   const merged: string[] = [];
   for (const r of rows) {
     const t = r.text.trim();
     if (!t) continue;
+    const totalMatch = t.match(TOTAL_RE);
+    if (totalMatch) {
+      expectedTotal = parseInt(totalMatch[1], 10);
+      continue;
+    }
+    if (FOOTER_RE.test(t)) continue;
     if (ID_RE.test(t)) {
       merged.push(t);
     } else if (merged.length > 0) {
-      // continuação da última linha (descrição quebrada)
       merged[merged.length - 1] += " " + t;
     }
   }
