@@ -435,7 +435,7 @@ const Index = () => {
               labels={labels}
               onRemove={handleRemove}
               onUpdate={(id, field, value) => {
-                setLabels(prev => prev.map(l => l.id === id ? { ...l, [field]: value } : l));
+                setLabels(prev => prev.map(l => l.id === id ? { ...l, [field]: value } as ParsedLabel : l));
               }}
               onToggleSubdivisao={(id) => {
                 setLabels(prev => {
