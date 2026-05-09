@@ -83,7 +83,6 @@ export async function parsePickingListPdf(file: File): Promise<PickingItem[]> {
     sortedRows = merged;
 
     // For each row, try to extract a SKU pattern using regex
-    const seen = new Set<string>();
     for (const row of sortedRows) {
       const line = row.text.trim();
       if (!line) continue;
