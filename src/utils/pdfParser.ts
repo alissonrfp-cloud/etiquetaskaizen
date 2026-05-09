@@ -26,16 +26,6 @@ function extractColorFromNome(nome: string): string | null {
   return null;
 }
 
-/**
- * Extract the color from the NOME field.
- */
-function extractColorFromNome(nome: string): string | null {
-  const upper = nome.toUpperCase();
-  for (const color of KNOWN_COLORS) {
-    if (upper.includes(color)) return color;
-  }
-  return null;
-}
 
 /**
  * Parse a picking list PDF and extract SKU + quantity pairs.
