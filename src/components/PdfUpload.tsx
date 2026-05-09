@@ -24,6 +24,7 @@ export function PdfUpload({ remessa, lote, categoria, cliente, onLabelsAdded }: 
   const [dragActive, setDragActive] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewRows, setReviewRows] = useState<ReviewRow[]>([]);
+  const [expectedTotal, setExpectedTotal] = useState<number | undefined>(undefined);
   const fileRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -33,25 +34,28 @@ export function PdfUpload({ remessa, lote, categoria, cliente, onLabelsAdded }: 
     const allRows: ReviewRow[] = [];
     const methodsUsed = new Set<string>();
     const errors: string[] = [];
+    let totalSum: number | undefined;
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       setStage(`Lendo ${i + 1}/${files.length}: ${file.name}…`);
       try {
-        const { items, method } = await parsePickingListSmart(file, { forceAi });
+        const { items, method, expectedTotal: et } = await parsePickingListSmart(file, { forceAi });
         methodsUsed.add(method);
+        if (et !== undefined) totalSum = (totalSum ?? 0) + et;
         for (const it of items) {
           allRows.push({
             id: crypto.randomUUID(),
             sku: it.sku,
             quantidade: it.quantidade,
-            source: files.length > 1 ? file.name : undefined,
+            source: it.source ?? (files.length > 1 ? file.name : undefined),
           });
         }
       } catch (err) {
         errors.push(`${file.name}: ${err instanceof Error ? err.message : "erro desconhecido"}`);
       }
     }
+    setExpectedTotal(totalSum);
 
     setLoading(false);
     setStage("");
@@ -173,7 +177,8 @@ export function PdfUpload({ remessa, lote, categoria, cliente, onLabelsAdded }: 
       <PdfReviewDialog
         open={reviewOpen}
         rows={reviewRows}
-        onCancel={() => { setReviewOpen(false); setReviewRows([]); }}
+        expectedTotal={expectedTotal}
+        onCancel={() => { setReviewOpen(false); setReviewRows([]); setExpectedTotal(undefined); }}
         onConfirm={handleConfirm}
       />
     </div>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { parseSku } from "@/utils/skuParser";
 
@@ -19,11 +20,14 @@ export interface ReviewRow {
   sku: string;
   quantidade: number;
   source?: string;
+  /** Se o usuário marcou para incluir (default: reconhecidos sim, não reconhecidos não). */
+  included?: boolean;
 }
 
 interface PdfReviewDialogProps {
   open: boolean;
   rows: ReviewRow[];
+  expectedTotal?: number;
   onCancel: () => void;
   onConfirm: (rows: ReviewRow[]) => void;
 }
@@ -33,19 +37,26 @@ function diagnose(sku: string): { ok: boolean; reason?: string } {
   if (!u) return { ok: false, reason: "SKU vazio" };
   const parsed = parseSku(u);
   if (parsed) return { ok: true };
-  // Tentar diagnosticar a falha
   if (!/^[A-Z]+/.test(u)) return { ok: false, reason: "Sem prefixo" };
   const dimMatch = u.match(/(\d+)X(\d+)/);
-  if (!dimMatch) return { ok: false, reason: "Dimensão não encontrada" };
-  return { ok: false, reason: "Prefixo desconhecido ou cor inválida" };
+  if (!dimMatch) return { ok: false, reason: "Não é cortina padrão" };
+  return { ok: false, reason: "Prefixo/cor não reconhecidos" };
 }
 
-export function PdfReviewDialog({ open, rows, onCancel, onConfirm }: PdfReviewDialogProps) {
-  const [editing, setEditing] = useState<ReviewRow[]>(rows);
+export function PdfReviewDialog({ open, rows, expectedTotal, onCancel, onConfirm }: PdfReviewDialogProps) {
+  const [editing, setEditing] = useState<ReviewRow[]>([]);
   const [dedup, setDedup] = useState(true);
 
-  // Re-sincroniza quando as linhas externas mudam (nova importação)
-  useMemo(() => setEditing(rows), [rows]);
+  // Re-sincroniza quando entra nova importação. Aplica default de "incluído"
+  // baseado em SKU reconhecido.
+  useEffect(() => {
+    setEditing(
+      rows.map((r) => ({
+        ...r,
+        included: r.included !== undefined ? r.included : diagnose(r.sku).ok,
+      })),
+    );
+  }, [rows]);
 
   const finalRows = useMemo(() => {
     if (!dedup) return editing;
@@ -56,6 +67,8 @@ export function PdfReviewDialog({ open, rows, onCancel, onConfirm }: PdfReviewDi
       const existing = map.get(key);
       if (existing) {
         existing.quantidade += r.quantidade;
+        // Se qualquer duplicado estiver incluído, mantém incluído
+        existing.included = existing.included || r.included;
       } else {
         map.set(key, { ...r, sku: key });
       }
@@ -64,15 +77,20 @@ export function PdfReviewDialog({ open, rows, onCancel, onConfirm }: PdfReviewDi
   }, [editing, dedup]);
 
   const stats = useMemo(() => {
-    let ok = 0;
-    let bad = 0;
-    let totalQty = 0;
+    let okIncluded = 0;
+    let unknownTotal = 0;
+    let totalQtyIncluded = 0;
+    let totalQtyAll = 0;
     for (const r of finalRows) {
-      if (diagnose(r.sku).ok) ok++;
-      else bad++;
-      totalQty += r.quantidade;
+      const ok = diagnose(r.sku).ok;
+      if (!ok) unknownTotal++;
+      if (r.included) {
+        if (ok) okIncluded++;
+        totalQtyIncluded += r.quantidade;
+      }
+      totalQtyAll += r.quantidade;
     }
-    return { ok, bad, totalQty };
+    return { okIncluded, unknownTotal, totalQtyIncluded, totalQtyAll };
   }, [finalRows]);
 
   const updateRow = (id: string, patch: Partial<ReviewRow>) => {
@@ -81,12 +99,20 @@ export function PdfReviewDialog({ open, rows, onCancel, onConfirm }: PdfReviewDi
   const removeRow = (id: string) => {
     setEditing((prev) => prev.filter((r) => r.id !== id));
   };
+  const setAllRecognized = (val: boolean) => {
+    setEditing((prev) => prev.map((r) => (diagnose(r.sku).ok ? { ...r, included: val } : r)));
+  };
+  const setAllAny = (val: boolean) => {
+    setEditing((prev) => prev.map((r) => ({ ...r, included: val })));
+  };
 
   const handleConfirm = () => {
-    // Só envia os reconhecidos
-    const valid = finalRows.filter((r) => diagnose(r.sku).ok && r.quantidade > 0);
+    const valid = finalRows.filter((r) => r.included && diagnose(r.sku).ok && r.quantidade > 0);
     onConfirm(valid);
   };
+
+  const totalMismatch =
+    expectedTotal !== undefined && stats.totalQtyAll !== expectedTotal;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onCancel()}>
@@ -94,19 +120,35 @@ export function PdfReviewDialog({ open, rows, onCancel, onConfirm }: PdfReviewDi
         <DialogHeader>
           <DialogTitle>Revisar itens importados</DialogTitle>
           <DialogDescription>
-            Confira SKU e quantidade de cada item antes de adicionar à lista. Itens com ⚠ não foram reconhecidos e serão descartados.
+            Marque o que deve virar etiqueta. SKUs não reconhecidos vêm desmarcados — você ainda pode incluir/editar manualmente se quiser.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center gap-4 text-sm border-y py-2">
+        <div className="flex flex-wrap items-center gap-3 text-xs border-y py-2">
           <div className="flex items-center gap-2">
             <Switch id="dedup" checked={dedup} onCheckedChange={setDedup} />
             <Label htmlFor="dedup" className="text-xs cursor-pointer">Somar SKUs duplicados</Label>
           </div>
-          <div className="ml-auto flex gap-3 text-xs">
-            <span className="text-emerald-600 font-semibold">✓ {stats.ok} reconhecido(s)</span>
-            {stats.bad > 0 && <span className="text-amber-600 font-semibold">⚠ {stats.bad} com problema</span>}
-            <span className="text-muted-foreground">{stats.totalQty} unidades</span>
+          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setAllRecognized(true)}>
+            Marcar reconhecidos
+          </Button>
+          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setAllAny(false)}>
+            Desmarcar todos
+          </Button>
+          <div className="ml-auto flex flex-wrap gap-3">
+            <span className="text-emerald-600 font-semibold">✓ {stats.okIncluded} a incluir</span>
+            {stats.unknownTotal > 0 && (
+              <span className="text-amber-600 font-semibold">⚠ {stats.unknownTotal} não reconhecido(s)</span>
+            )}
+            <span className="text-muted-foreground">
+              {stats.totalQtyIncluded} un. selecionada(s) · {stats.totalQtyAll} no total
+            </span>
+            {expectedTotal !== undefined && (
+              <span className={totalMismatch ? "text-destructive font-semibold" : "text-muted-foreground"}>
+                Lista original: {expectedTotal}
+                {totalMismatch ? " ⚠ divergente" : " ✓"}
+              </span>
+            )}
           </div>
         </div>
 
@@ -114,21 +156,28 @@ export function PdfReviewDialog({ open, rows, onCancel, onConfirm }: PdfReviewDi
           <table className="w-full text-xs">
             <thead className="sticky top-0 bg-background">
               <tr>
+                <th className="p-2 w-8"></th>
                 <th className="text-left p-2 w-8"></th>
                 <th className="text-left p-2">SKU</th>
                 <th className="text-right p-2 w-20">Qtd</th>
-                <th className="text-left p-2">Status</th>
+                <th className="text-left p-2">Status / Descrição</th>
                 <th className="w-8"></th>
               </tr>
             </thead>
             <tbody>
               {finalRows.length === 0 && (
-                <tr><td colSpan={5} className="text-center p-6 text-muted-foreground">Nenhum item para revisar.</td></tr>
+                <tr><td colSpan={6} className="text-center p-6 text-muted-foreground">Nenhum item para revisar.</td></tr>
               )}
               {finalRows.map((row) => {
                 const d = diagnose(row.sku);
                 return (
                   <tr key={row.id} className="border-t">
+                    <td className="p-2">
+                      <Checkbox
+                        checked={!!row.included}
+                        onCheckedChange={(v) => updateRow(row.id, { included: !!v })}
+                      />
+                    </td>
                     <td className="p-2">
                       {d.ok ? (
                         <CheckCircle2 className="h-4 w-4 text-emerald-600" />
@@ -152,9 +201,17 @@ export function PdfReviewDialog({ open, rows, onCancel, onConfirm }: PdfReviewDi
                         min={0}
                       />
                     </td>
-                    <td className="p-2 text-xs text-muted-foreground">
-                      {d.ok ? <span className="text-emerald-600">OK</span> : <span className="text-amber-600">{d.reason}</span>}
-                      {row.source && <span className="block text-[10px] truncate max-w-[160px]">{row.source}</span>}
+                    <td className="p-2 text-xs">
+                      {d.ok ? (
+                        <span className="text-emerald-600">OK</span>
+                      ) : (
+                        <span className="text-amber-600">{d.reason}</span>
+                      )}
+                      {row.source && (
+                        <span className="block text-[10px] text-muted-foreground truncate max-w-[260px]">
+                          {row.source}
+                        </span>
+                      )}
                     </td>
                     <td className="p-2">
                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeRow(row.id)}>
@@ -170,8 +227,8 @@ export function PdfReviewDialog({ open, rows, onCancel, onConfirm }: PdfReviewDi
 
         <DialogFooter>
           <Button variant="ghost" onClick={onCancel}>Cancelar</Button>
-          <Button onClick={handleConfirm} disabled={stats.ok === 0}>
-            Adicionar {stats.ok} etiqueta(s)
+          <Button onClick={handleConfirm} disabled={stats.okIncluded === 0}>
+            Adicionar {stats.okIncluded} etiqueta(s)
           </Button>
         </DialogFooter>
       </DialogContent>
