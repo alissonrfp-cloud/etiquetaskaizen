@@ -48,6 +48,7 @@ export function PdfUpload({ remessa, lote, categoria, cliente, onLabelsAdded }: 
             id: crypto.randomUUID(),
             sku: it.sku,
             quantidade: it.quantidade,
+            recognized: it.recognized,
             source: it.source ?? (files.length > 1 ? file.name : undefined),
           });
         }
