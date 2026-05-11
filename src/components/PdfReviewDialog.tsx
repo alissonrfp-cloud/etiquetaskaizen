@@ -138,19 +138,15 @@ export function PdfReviewDialog({ open, rows, expectedTotal, onCancel, onConfirm
             Desmarcar todos
           </Button>
           <div className="ml-auto flex flex-wrap gap-3">
-            <span className="text-emerald-600 font-semibold">✓ {stats.okIncluded} a incluir</span>
             {stats.unknownTotal > 0 && (
               <span className="text-amber-600 font-semibold">⚠ {stats.unknownTotal} não reconhecido(s)</span>
             )}
             <span className="text-muted-foreground">
-              {stats.totalQtyIncluded} un. selecionada(s) · {stats.totalQtyAll} no total
+              {stats.okIncluded} de {finalRows.length} itens selecionados · {stats.totalQtyIncluded} unidades
+              {expectedTotal !== undefined && (
+                <> · Total validado: <span className={totalMismatch ? "text-destructive font-semibold" : "text-emerald-600 font-semibold"}>{expectedTotal}{totalMismatch ? " ⚠" : " ✓"}</span></>
+              )}
             </span>
-            {expectedTotal !== undefined && (
-              <span className={totalMismatch ? "text-destructive font-semibold" : "text-muted-foreground"}>
-                Lista original: {expectedTotal}
-                {totalMismatch ? " ⚠ divergente" : " ✓"}
-              </span>
-            )}
           </div>
         </div>
 
