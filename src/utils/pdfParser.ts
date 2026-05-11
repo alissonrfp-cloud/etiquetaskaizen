@@ -258,6 +258,12 @@ export async function parsePickingListSmart(
   if (error) throw new Error(error.message || "Falha na extração via IA");
   if (data?.error) throw new Error(data.error);
 
-  const items: PickingItem[] = data?.items ?? [];
+  const rawItems: Array<Partial<PickingItem> & { sku: string; quantidade: number }> = data?.items ?? [];
+  const items: PickingItem[] = rawItems.map((it) => ({
+    sku: it.sku,
+    quantidade: it.quantidade,
+    source: it.source,
+    recognized: it.recognized ?? isRecognized(it.sku),
+  }));
   return { items, method: hasText ? "ai" : "ai-ocr" };
 }
