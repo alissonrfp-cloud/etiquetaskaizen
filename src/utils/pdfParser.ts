@@ -6,6 +6,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs
 export interface PickingItem {
   sku: string;
   quantidade: number;
+  /** true se o prefixo do SKU existe em SKU_PREFIXES. */
+  recognized: boolean;
   /** Linha original (descrição/NOME) — útil para a tela de revisão. */
   source?: string;
   /** Aviso opcional. */
