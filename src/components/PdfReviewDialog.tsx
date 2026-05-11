@@ -20,6 +20,8 @@ export interface ReviewRow {
   sku: string;
   quantidade: number;
   source?: string;
+  /** Vindo do parser: true se o prefixo é conhecido. Default usa diagnose() como fallback. */
+  recognized?: boolean;
   /** Se o usuário marcou para incluir (default: reconhecidos sim, não reconhecidos não). */
   included?: boolean;
 }
@@ -136,19 +138,15 @@ export function PdfReviewDialog({ open, rows, expectedTotal, onCancel, onConfirm
             Desmarcar todos
           </Button>
           <div className="ml-auto flex flex-wrap gap-3">
-            <span className="text-emerald-600 font-semibold">✓ {stats.okIncluded} a incluir</span>
             {stats.unknownTotal > 0 && (
               <span className="text-amber-600 font-semibold">⚠ {stats.unknownTotal} não reconhecido(s)</span>
             )}
             <span className="text-muted-foreground">
-              {stats.totalQtyIncluded} un. selecionada(s) · {stats.totalQtyAll} no total
+              {stats.okIncluded} de {finalRows.length} itens selecionados · {stats.totalQtyIncluded} unidades
+              {expectedTotal !== undefined && (
+                <> · Total validado: <span className={totalMismatch ? "text-destructive font-semibold" : "text-emerald-600 font-semibold"}>{expectedTotal}{totalMismatch ? " ⚠" : " ✓"}</span></>
+              )}
             </span>
-            {expectedTotal !== undefined && (
-              <span className={totalMismatch ? "text-destructive font-semibold" : "text-muted-foreground"}>
-                Lista original: {expectedTotal}
-                {totalMismatch ? " ⚠ divergente" : " ✓"}
-              </span>
-            )}
           </div>
         </div>
 
@@ -171,7 +169,7 @@ export function PdfReviewDialog({ open, rows, expectedTotal, onCancel, onConfirm
               {finalRows.map((row) => {
                 const d = diagnose(row.sku);
                 return (
-                  <tr key={row.id} className="border-t">
+                  <tr key={row.id} className={`border-t ${d.ok ? "" : "bg-amber-50 dark:bg-amber-950/20"}`}>
                     <td className="p-2">
                       <Checkbox
                         checked={!!row.included}
@@ -205,7 +203,9 @@ export function PdfReviewDialog({ open, rows, expectedTotal, onCancel, onConfirm
                       {d.ok ? (
                         <span className="text-emerald-600">OK</span>
                       ) : (
-                        <span className="text-amber-600">{d.reason}</span>
+                        <span className="inline-block px-1.5 py-0.5 rounded bg-destructive text-destructive-foreground text-[10px] font-semibold">
+                          SKU não reconhecido
+                        </span>
                       )}
                       {row.source && (
                         <span className="block text-[10px] text-muted-foreground truncate max-w-[260px]">

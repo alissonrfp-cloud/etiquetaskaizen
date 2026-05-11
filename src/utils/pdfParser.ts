@@ -6,6 +6,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs
 export interface PickingItem {
   sku: string;
   quantidade: number;
+  /** true se o prefixo do SKU existe em SKU_PREFIXES. */
+  recognized: boolean;
   /** Linha original (descrição/NOME) — útil para a tela de revisão. */
   source?: string;
   /** Aviso opcional. */
@@ -35,7 +37,7 @@ async function extractRows(file: File): Promise<Row[]> {
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
     const page = await pdf.getPage(pageNum);
     const textContent = await page.getTextContent();
-    const Y_TOLERANCE = 3;
+    const Y_TOLERANCE = 5;
 
     const raw: { x: number; y: number; text: string }[] = [];
     for (const item of textContent.items) {
@@ -62,31 +64,36 @@ async function extractRows(file: File): Promise<Row[]> {
   return all;
 }
 
+function isRecognized(sku: string): boolean {
+  const u = sku.toUpperCase();
+  return KNOWN_PREFIXES.some((p) => u.startsWith(p));
+}
+
+/** Último token "número inteiro puro" da linha vira QTD. */
+function extractQtyFromTokens(tokens: Token[]): { qty: number; qtyToken: Token | null } {
+  for (let i = tokens.length - 1; i >= 0; i--) {
+    const txt = tokens[i].text.trim();
+    if (/^\d+$/.test(txt)) {
+      const v = parseInt(txt, 10);
+      if (v > 0 && v <= 9999) return { qty: v, qtyToken: tokens[i] };
+    }
+  }
+  return { qty: 0, qtyToken: null };
+}
+
 /**
  * Modo TABELA — Picking List Kaizen.
- *
- * Estratégia: localiza a coluna **QTD / Quantidade** pelo cabeçalho e lê,
- * em cada linha de dados, o token cujo X mais se aproxima dessa coluna.
- * Robusto a qualquer ruído na descrição (dimensões "2,20m", códigos etc).
- *
- * Captura TODOS os SKUs — a tela de revisão decide o que entra.
+ * QTD = SEMPRE o último token inteiro puro da linha. Nunca por proximidade
+ * de coluna X (evita confundir o "2" de "2,20m" com o QTD real).
  */
 function parseTableMode(rows: Row[]): { items: PickingItem[]; expectedTotal?: number } {
   const items: PickingItem[] = [];
   let expectedTotal: number | undefined;
 
-  // 1) Localiza o X do cabeçalho QTD / Quantidade
-  let qtyX: number | null = null;
-  for (const r of rows) {
-    const tk = r.tokens.find((t) => /^(qtd|quantidade)\.?$/i.test(t.text.trim()));
-    if (tk) { qtyX = tk.x; break; }
-  }
-
-  const ID_RE = /^\d{7}$/;
+  const ID_RE = /^\d{5,10}$/;
   const TOTAL_RE = /^total\s+(\d+)\b/i;
   const FOOTER_RE = /^(página|page|filtros|expedição|separado em|total\b)/i;
 
-  // 2) Junta linhas-continuação à última linha de dado
   const dataRows: Row[] = [];
   for (const r of rows) {
     const t = r.text.trim();
@@ -103,46 +110,19 @@ function parseTableMode(rows: Row[]): { items: PickingItem[]; expectedTotal?: nu
     }
   }
 
-  // 3) Em cada linha: SKU = 2º token; QTD = token inteiro mais próximo de qtyX
   for (const r of dataRows) {
     const tokens = r.tokens;
     if (tokens.length < 2) continue;
     const sku = tokens[1].text.trim().toUpperCase();
     if (!sku) continue;
 
-    let quantidade = 0;
-    let qtyToken: Token | null = null;
-
-    if (qtyX !== null) {
-      let best: { dist: number; val: number; tk: Token } | null = null;
-      for (let i = 1; i < tokens.length; i++) {
-        const t = tokens[i];
-        const txt = t.text.trim();
-        if (!/^\d+$/.test(txt)) continue;
-        const v = parseInt(txt, 10);
-        if (v <= 0 || v > 9999) continue;
-        const dist = Math.abs(t.x - qtyX);
-        if (!best || dist < best.dist) best = { dist, val: v, tk: t };
-      }
-      if (best) { quantidade = best.val; qtyToken = best.tk; }
-    }
-
-    if (!quantidade) {
-      for (let i = tokens.length - 1; i >= 1; i--) {
-        const txt = tokens[i].text.trim();
-        if (/^\d+$/.test(txt)) {
-          const v = parseInt(txt, 10);
-          if (v > 0 && v <= 9999) { quantidade = v; qtyToken = tokens[i]; break; }
-        }
-      }
-    }
-
-    if (!quantidade) continue;
+    const { qty, qtyToken } = extractQtyFromTokens(tokens);
+    if (!qty) continue;
 
     const descTokens = tokens.slice(2).filter((t) => t !== qtyToken);
     const nome = descTokens.map((t) => t.text).join(" ").replace(/\s+/g, " ").trim();
 
-    items.push({ sku, quantidade, source: nome || undefined });
+    items.push({ sku, quantidade: qty, recognized: isRecognized(sku), source: nome || undefined });
   }
 
   return { items, expectedTotal };
@@ -150,9 +130,9 @@ function parseTableMode(rows: Row[]): { items: PickingItem[]; expectedTotal?: nu
 
 /**
  * Modo LOOSE — heurística antiga, para PDFs sem o cabeçalho ID/SKU/NOME/QTD.
- * Procura prefixos conhecidos e tenta inferir cor + qtd. Mais frágil.
+ * QTD usa a mesma regra do modo tabela: último inteiro puro tokenizado.
  */
-function parseLooseMode(rows: { text: string }[]): PickingItem[] {
+function parseLooseMode(rows: Row[]): PickingItem[] {
   const items: PickingItem[] = [];
   for (const r of rows) {
     const line = r.text;
@@ -184,11 +164,9 @@ function parseLooseMode(rows: { text: string }[]): PickingItem[] {
     }
     const sku = color ? baseSku + color : baseSku;
 
-    // QTD = último inteiro isolado (mais robusto que "primeiro após o SKU")
-    const qtyMatch = line.match(/(\d+)\s*$/);
-    const qty = qtyMatch ? parseInt(qtyMatch[1], 10) : 0;
+    const { qty } = extractQtyFromTokens(r.tokens);
     if (qty > 0 && qty < 1000) {
-      items.push({ sku, quantidade: qty });
+      items.push({ sku, quantidade: qty, recognized: isRecognized(sku) });
     }
   }
   return items;
@@ -280,6 +258,12 @@ export async function parsePickingListSmart(
   if (error) throw new Error(error.message || "Falha na extração via IA");
   if (data?.error) throw new Error(data.error);
 
-  const items: PickingItem[] = data?.items ?? [];
+  const rawItems: Array<Partial<PickingItem> & { sku: string; quantidade: number }> = data?.items ?? [];
+  const items: PickingItem[] = rawItems.map((it) => ({
+    sku: it.sku,
+    quantidade: it.quantidade,
+    source: it.source,
+    recognized: it.recognized ?? isRecognized(it.sku),
+  }));
   return { items, method: hasText ? "ai" : "ai-ocr" };
 }
