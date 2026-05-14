@@ -7,7 +7,7 @@ export interface CellColors {
 
 const WHITE: CellColors = { backgroundColor: "#FFFFFF", textColor: "#000000" };
 const AZUL_TRILHO: CellColors = { backgroundColor: "#00B0F0", textColor: "#000000" };
-const ROSA_ILHOS: CellColors = { backgroundColor: "#FF99FF", textColor: "#000000" };
+const ROSA_ILHOS: CellColors = { backgroundColor: "#F285D5", textColor: "#000000" };
 const ROXO_SHOPEE: CellColors = { backgroundColor: "#BF80FF", textColor: "#000000" };
 const AZUL_CLARO_ML: CellColors = { backgroundColor: "#87CEEB", textColor: "#000000" };
 const AMARELO_REVENDA: CellColors = { backgroundColor: "#FFFF00", textColor: "#000000" };
