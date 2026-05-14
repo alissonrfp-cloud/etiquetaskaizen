@@ -40,7 +40,7 @@ const Index = () => {
   const [modoManual, setModoManual] = useState(false);
   const [sku, setSku] = useState("");
   const [quantidade, setQuantidade] = useState("");
-  const [remessa, setRemessa] = useState(new Date().toLocaleDateString("pt-BR"));
+  const [remessa, setRemessa] = useState(format(new Date(), "dd/MM"));
   const [lote, setLote] = useState("");
   const [dataSaida, setDataSaida] = useState<Date>(new Date());
   const [categoria, setCategoria] = useState<Categoria>("marketplace");
@@ -67,7 +67,7 @@ const Index = () => {
       toast({ title: "Quantidade inválida", variant: "destructive" });
       return;
     }
-    const dataSaidaStr = format(dataSaida, "dd/MM/yyyy");
+    const dataSaidaStr = format(dataSaida, "dd/MM");
 
     if (modoManual) {
       if (!manModelo.trim() || !manTamanho.trim()) {
@@ -300,7 +300,7 @@ const Index = () => {
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full justify-start text-left font-normal text-xs">
                       <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
-                      {format(dataSaida, "dd/MM/yyyy")}
+                      {format(dataSaida, "dd/MM")}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -358,7 +358,7 @@ const Index = () => {
                     lote,
                     subdivisao: "",
                     corte: "",
-                    dataSaida: format(dataSaida, "dd/MM/yyyy"),
+                    dataSaida: format(dataSaida, "dd/MM"),
                     categoria,
                     urgente,
                     cliente,

@@ -111,7 +111,7 @@ export function PdfUpload({ remessa, lote, categoria, cliente, onLabelsAdded }: 
   };
 
   const handleConfirm = (rows: ReviewRow[]) => {
-    const dataSaida = format(new Date(), "dd/MM/yyyy");
+    const dataSaida = format(new Date(), "dd/MM");
     const labels: ParsedLabel[] = [];
     const failed: string[] = [];
     for (const r of rows) {
