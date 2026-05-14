@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { sortLabels, type ParsedLabel } from "@/utils/skuParser";
 import { getLabelColors } from "@/data/colorRules";
@@ -41,7 +42,7 @@ const PrintPage = () => {
       cliente: clientes.join(", "),
       total: totalQty,
       count: labels.length,
-      data: new Date().toLocaleDateString("pt-BR"),
+      data: format(new Date(), "dd/MM"),
     };
   }, [labels]);
 
