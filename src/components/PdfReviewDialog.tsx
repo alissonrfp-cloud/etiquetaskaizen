@@ -109,7 +109,7 @@ export function PdfReviewDialog({ open, rows, expectedTotal, onCancel, onConfirm
   };
 
   const handleConfirm = () => {
-    const valid = finalRows.filter((r) => r.included && diagnose(r.sku).ok && r.quantidade > 0);
+    const valid = finalRows.filter((r) => r.included && r.sku.trim() && r.quantidade > 0);
     onConfirm(valid);
   };
 
