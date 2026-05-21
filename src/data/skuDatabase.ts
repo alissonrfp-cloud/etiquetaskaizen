@@ -31,6 +31,9 @@ export const SKU_PREFIXES: SkuPrefix[] = [
   { prefix: "CGLD", modelo: "Flamê", parteSuperior: "Trilho Duplo", isDupla: false },
   // Oxford
   { prefix: "COXF", modelo: "Oxford", parteSuperior: "Ilhós Redondo Cromado", isDupla: false },
+  // Porta - Blackout / Microfibra
+  { prefix: "CBTP", modelo: "Blackout para Porta", parteSuperior: "Ilhós Redondo Cromado", isDupla: false },
+  { prefix: "CMTP", modelo: "Microfibra para Porta", parteSuperior: "Ilhós Redondo Cromado", isDupla: false },
 ];
 
 // Sort by prefix length descending so longer prefixes match first

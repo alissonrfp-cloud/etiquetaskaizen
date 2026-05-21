@@ -79,7 +79,7 @@ export function PdfReviewDialog({ open, rows, expectedTotal, onCancel, onConfirm
   }, [editing, dedup]);
 
   const stats = useMemo(() => {
-    let okIncluded = 0;
+    let included = 0;
     let unknownTotal = 0;
     let totalQtyIncluded = 0;
     let totalQtyAll = 0;
@@ -87,12 +87,12 @@ export function PdfReviewDialog({ open, rows, expectedTotal, onCancel, onConfirm
       const ok = diagnose(r.sku).ok;
       if (!ok) unknownTotal++;
       if (r.included) {
-        if (ok) okIncluded++;
+        included++;
         totalQtyIncluded += r.quantidade;
       }
       totalQtyAll += r.quantidade;
     }
-    return { okIncluded, unknownTotal, totalQtyIncluded, totalQtyAll };
+    return { included, unknownTotal, totalQtyIncluded, totalQtyAll };
   }, [finalRows]);
 
   const updateRow = (id: string, patch: Partial<ReviewRow>) => {
@@ -109,7 +109,7 @@ export function PdfReviewDialog({ open, rows, expectedTotal, onCancel, onConfirm
   };
 
   const handleConfirm = () => {
-    const valid = finalRows.filter((r) => r.included && diagnose(r.sku).ok && r.quantidade > 0);
+    const valid = finalRows.filter((r) => r.included && r.sku.trim() && r.quantidade > 0);
     onConfirm(valid);
   };
 
@@ -142,7 +142,7 @@ export function PdfReviewDialog({ open, rows, expectedTotal, onCancel, onConfirm
               <span className="text-amber-600 font-semibold">⚠ {stats.unknownTotal} não reconhecido(s)</span>
             )}
             <span className="text-muted-foreground">
-              {stats.okIncluded} de {finalRows.length} itens selecionados · {stats.totalQtyIncluded} unidades
+              {stats.included} de {finalRows.length} itens selecionados · {stats.totalQtyIncluded} unidades
               {expectedTotal !== undefined && (
                 <> · Total validado: <span className={totalMismatch ? "text-destructive font-semibold" : "text-emerald-600 font-semibold"}>{expectedTotal}{totalMismatch ? " ⚠" : " ✓"}</span></>
               )}
@@ -227,8 +227,8 @@ export function PdfReviewDialog({ open, rows, expectedTotal, onCancel, onConfirm
 
         <DialogFooter>
           <Button variant="ghost" onClick={onCancel}>Cancelar</Button>
-          <Button onClick={handleConfirm} disabled={stats.okIncluded === 0}>
-            Adicionar {stats.okIncluded} etiqueta(s)
+          <Button onClick={handleConfirm} disabled={stats.included === 0}>
+            Adicionar {stats.included} etiqueta(s)
           </Button>
         </DialogFooter>
       </DialogContent>
